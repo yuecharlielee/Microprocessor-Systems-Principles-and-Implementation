@@ -1,5 +1,4 @@
 `timescale 1ns / 1ps
-`timescale 1ns / 1ps
 // =============================================================================
 //  Program : profiler.v
 //  Author  : You-Ting Li
