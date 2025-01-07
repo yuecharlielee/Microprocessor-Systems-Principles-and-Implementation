@@ -107,6 +107,7 @@ reg  [1 : 0]            branch_likelihood[ENTRY_NUM-1 : 0];
 // CY Hsiang 0220_2020: added "~stall_i" to "we ="
 assign we = ~stall_i & (is_cond_branch_i | is_jal_i) & !BHT_hit;
 
+//word alianment => dont need to store the last 2 bit
 assign read_addr = pc_i[NBITS+1 : 2];
 assign write_addr = dec_pc_i[NBITS+1 : 2];
 
