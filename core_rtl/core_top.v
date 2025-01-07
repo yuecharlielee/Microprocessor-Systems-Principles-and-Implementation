@@ -872,50 +872,22 @@ execute Execute(
 );
 
 // =============================================================================
-// Profiling flags
-wire core_list_find_flag = exe2mem_addr >= 32'h00001d0c && exe2mem_addr <= 32'h00001d5c;
-wire core_list_reverse_flag = exe2mem_addr >= 32'h00001d60 && exe2mem_addr <= 32'h00001d80;
-wire core_state_transition_flag = exe2mem_addr >= 32'h00002a40 && exe2mem_addr <= 32'h00002d30;
-wire matrix_mul_matrix_bitextract_flag = exe2mem_addr >= 32'h000026a0 && exe2mem_addr <= 32'h0000275c;
-wire crcu8_flag = exe2mem_addr >= 32'h000019c8 && exe2mem_addr <= 32'h00001a0c;
+profiler Profiler(
+    .clk_i(clk_i),
+    .rst_i(rst_i),
+    .stall_i(stall_pipeline),
 
-// Load/Store flags
+    .pc_i(exe2mem_addr),
+    .w_en_i(exe_we),
+    .r_en_i(exe_re),
 
-// stall flags
+    .prof_cnt_o(prof_cnt_o),
+    .total_cnt_o(total_cnt_o),
+    .stall_cnt_o(stall_cnt_o),
 
-
-//counter 
-(* mark_debug = "true" *) reg [31:0] core_list_find_counter;
-(* mark_debug = "true" *) reg [31:0] core_list_reverse_counter;
-(* mark_debug = "true" *) reg [31:0] core_state_transition_counter;
-(* mark_debug = "true" *) reg [31:0] matrix_mul_matrix_bitextract_counter;
-(* mark_debug = "true" *) reg [31:0] crcu8_counter;
-
-always @(posedge clk_i) 
-begin
-    if (rst_i)
-    begin
-        core_list_find_counter <= 32'h00000000;
-        core_list_reverse_counter <= 32'h00000000;
-        core_state_transition_counter <= 32'h00000000;
-        matrix_mul_matrix_bitextract_counter <= 32'h00000000;
-        crcu8_counter <= 32'h00000000;
-    end
-    else
-    begin
-        if (core_list_find_flag)
-            core_list_find_counter <= core_list_find_counter + 1;
-        if (core_list_reverse_flag)
-            core_list_reverse_counter <= core_list_reverse_counter + 1;
-        if (core_state_transition_flag)
-            core_state_transition_counter <= core_state_transition_counter + 1;
-        if (matrix_mul_matrix_bitextract_flag)
-            matrix_mul_matrix_bitextract_counter <= matrix_mul_matrix_bitextract_counter + 1;
-        if (crcu8_flag)
-            crcu8_counter <= crcu8_counter + 1;
-    end
-end
-
+    .test_mem_counter(test_mem_counter),
+    .test_stall_counter(test_stall_counter)
+);
 
 
 // =============================================================================
