@@ -78,6 +78,7 @@ module execute #( parameter XLEN = 32 )
     input                   is_branch_i,
     input                   is_jal_i,
     input                   is_jalr_i,
+    input                   is_ret_i,
     input                   branch_hit_i,
     input                   branch_decision_i,
 
@@ -110,6 +111,10 @@ module execute #( parameter XLEN = 32 )
     output                  is_branch_o,
     output                  branch_taken_o,
     output                  branch_misprediction_o,
+
+    // To the Return Address Predictor
+    output                 is_ret_o,
+    output                 rap_misprediction_o,
 
     // Pipeline stall signal generator, activated when executing
     //    multicycle mul, div and rem instructions.
@@ -242,6 +247,7 @@ assign branch_restore_pc_o = pc_i + 'd4;  // The next PC of instruction, and the
                                           // restore PC if mispredicted branch taken.
 
 assign is_branch_o = is_branch_i | is_jal_i;
+assign is_ret_o = is_ret_i;
 assign branch_taken_o = (is_branch_i & compare_result) | is_jal_i | is_jalr_i;
 assign branch_misprediction_o = branch_hit_i & (branch_decision_i ^ branch_taken_o);
 

@@ -826,6 +826,7 @@ execute Execute(
     .is_branch_i(dec_is_branch),
     .is_jal_i(dec_is_jal),
     .is_jalr_i(dec_is_jalr),
+    .is_ret_i(dec_is_ret),
     .is_fencei_i(dec2exe_is_fencei),
     .branch_hit_i(dec_branch_hit),
     .branch_decision_i(dec_branch_decision),
@@ -855,6 +856,9 @@ execute Execute(
     .branch_misprediction_o(exe_branch_misprediction),
     .branch_target_addr_o(exe_branch_target_addr),     // to PCU and BPU
     .branch_restore_pc_o(exe_branch_restore_pc),       // to PCU only
+
+    // Return Address Predictor signals to RAP.
+    .is_ret_o(exe_is_return2rap),
 
     // Pipeline stall signal generator, activated when executing
     //    multicycle mul, div and rem instructions.

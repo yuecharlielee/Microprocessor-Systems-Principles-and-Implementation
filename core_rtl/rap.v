@@ -52,7 +52,7 @@
 // =============================================================================
 `include "aquila_config.vh"
 
-module rap #( parameter ENTRY_NUM = 64, parameter XLEN = 32 )
+module rap #( parameter ENTRY_NUM = 64, parameter XLEN = 32, parameter STACK_ENTRY_NUM = 16)
 (
     // System signals
     input               clk_i,
@@ -69,12 +69,112 @@ module rap #( parameter ENTRY_NUM = 64, parameter XLEN = 32 )
 
     // from Execute
     input               exe_is_return_i,
-    input  [XLEN-1 : 0] return_target_addr_i,
 
 
     // to Program_Counter
     output              return_addr_hit_o,
     output [XLEN-1 : 0] return_addr_o
 );
+
+localparam NBITS = $clog2(ENTRY_NUM);
+
+localparam stack_NBITS = $clog2(STACK_ENTRY_NUM);
+
+wire [NBITS-1 : 0]             read_addr;
+wire [NBITS-1 : 0]             write_addr;
+wire                           re;
+wire                           we, we_stack;
+reg                            BHT_hit_ff, BHT_hit;
+
+reg  [stack_NBITS-1 : 0]       stack_pointer;
+reg  [XLEN-1 : 0]              stack[stack_NBITS-1 : 0];
+reg  [stack_NBITS-1 : 0]       stack_cnt;
+
+
+
+// "we" is enabled to add a new entry to the BHT table when
+// the decoded branch instruction is not in the BHT.
+assign we_BHT = ~stall_i & (is_ret_i) & !BHT_hit;
+
+
+// "re_RAS" is enabled to read the return address in the stack when
+// the addr of the next instruction is in the BHT.
+assign re_RAS = ~stall_i & (ret_inst_tag == pc_i);
+
+// "we_RAS" is enabled to store the return address in the stack when
+// the decoded instruction is a jal instruction.
+assign we_RAS = ~stall_i & (is_jal_i);
+
+
+assign read_addr = pc_i[NBITS+1 : 2];
+assign write_addr = dec_pc_i[NBITS+1 : 2];
+
+integer idx;
+
+always @(posedge clk_i)
+begin
+    if (rst_i)
+    begin
+        for (idx = 0; idx < STACK_ENTRY_NUM; idx = idx + 1)
+            stack[idx] <= 0;
+    end
+    else if (stall_i)
+    begin
+        for (idx = 0; idx < STACK_ENTRY_NUM; idx = idx + 1)
+            stack[idx] <= stack[idx];
+    end
+    else
+    begin
+        if (we_RAS) // Execute the jal instruction for the first time.
+        begin
+            // store the pc + 4 in stack when decode a jal insturction
+            stack_pointer <= stack_pointer + 1;
+            stack_cnt <= stack_cnt + 1;
+            stack[stack_pointer] <= dec_pc_i + 4;
+        end
+        else if(re_RAS)
+        begin
+            stack_cnt <= stack_cnt - 1;
+            stack_pointer <= stack_pointer - 1;
+        end
+    end
+end
+
+// ===========================================================================
+//  Branch History Table (BHT). Here, we use a direct-mapping cache table to
+//  store branch history. Each entry of the table contains one fields:
+//  the PC of the return instruction (as the tag).
+//
+distri_ram #(.ENTRY_NUM(ENTRY_NUM), .XLEN(XLEN))
+RAP_BHT(
+    .clk_i(clk_i),
+    .we_i(we),                  // Write-enabled when the instruction at the Decode
+                                //   is a branch and has never been executed before.
+    .write_addr_i(write_addr),  // Direct-mapping index for the branch at Decode.
+    .read_addr_i(read_addr),    // Direct-mapping Index for the next PC to be fetched.
+
+    .data_i(dec_pc_i), // Input is not used when 'we' is 0.
+    .data_o(ret_inst_tag)
+);
+
+// Delay the BHT hit flag at the Fetch stage for two clock cycles (plus stalls)
+// such that it can be reused at the Execute stage for BHT update operation.
+always @ (posedge clk_i)
+begin
+    if (rst_i) begin
+        BHT_hit_ff <= 1'b0;
+        BHT_hit <= 1'b0;
+    end
+    else if (!stall_i) begin
+        BHT_hit_ff <= return_addr_hit_o;
+        BHT_hit <= BHT_hit_ff;
+    end
+end
+
+// ===========================================================================
+//  Outputs signals
+//
+assign return_addr_hit_o = (ret_inst_tag == pc_i);
+assign return_addr_o = stack[stack_pointer];
 
 endmodule
