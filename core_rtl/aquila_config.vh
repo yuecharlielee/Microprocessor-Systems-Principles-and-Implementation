@@ -84,6 +84,9 @@
 // Branch Prediction
 // `define ENABLE_BRANCH_PREDICTION
 
+// Return Address Prediction
+`define ENABLE_RETURN_ADDRESS_PREDICTION
+
 // Atomic Unit
 `define ENABLE_ATOMIC_UNIT
 

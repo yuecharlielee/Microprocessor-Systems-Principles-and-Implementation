@@ -76,6 +76,8 @@ module decode #(parameter XLEN = 32)
     input  [XLEN-1 : 0]     instruction_i,
     input                   branch_hit_i,
     input                   branch_decision_i,
+    input                   rap_hit_i,
+    input  [XLEN-1 : 0]     rap_addr_i,
 
     // From CSR
     input  [XLEN-1 : 0]     csr_data_i,
@@ -105,6 +107,8 @@ module decode #(parameter XLEN = 32)
     output reg              shift_sel_o,
     output reg              branch_hit_o,
     output reg              branch_decision_o,
+    output reg              rap_hit_o,
+    output reg [XLEN-1 : 0] rap_addr_o,
     output reg              is_jalr_o,
     output reg              is_fencei_o,
 
@@ -113,6 +117,7 @@ module decode #(parameter XLEN = 32)
     output reg              is_branch_o,
     output reg              is_jal_o,
     output reg              is_ret_o,
+
 
     // to CSR
     output     [11 : 0]     csr_addr_o,
@@ -514,6 +519,8 @@ begin
         csr_imm_o <= 0;
         branch_hit_o <= 0;
         branch_decision_o <= 0;
+        rap_hit_o <= 0;
+        rap_addr_o <= 0;
         is_fencei_o <= 0;
         amo_type_o <= 0;
         is_amo_o <= 0;
@@ -555,6 +562,8 @@ begin
         csr_imm_o <= csr_imm_o;
         branch_hit_o <= branch_hit_o;
         branch_decision_o <= branch_decision_o;
+        rap_hit_o <= 0;
+        rap_addr_o <= rap_addr_o;
         is_fencei_o <= is_fencei_o;
         amo_type_o <= amo_type_o;
         is_amo_o <= is_amo_o;
@@ -597,6 +606,8 @@ begin
         csr_imm_o <= 0;
         branch_hit_o <= 0;
         branch_decision_o <= 0;
+        rap_hit_o <= 0;
+        rap_addr_o <= 0;
         is_fencei_o <= 0;
         amo_type_o <= 0;
         is_amo_o <= 0;
@@ -637,7 +648,9 @@ begin
         csr_we_o <= rv32_csr & !((rv32_csrrs | rv32_csrrc) & rv32_instr[19: 15] == 5'b00000);
         csr_imm_o <= csr_imm;
         branch_hit_o <= branch_hit_i;
+        rap_hit_o <= rap_hit_i;
         branch_decision_o <= branch_decision_i;
+        rap_addr_o <= rap_addr_i;
         is_fencei_o <= rv32_fencei;
         amo_type_o <= amo_type;
         is_amo_o <= rv32_amo;

@@ -91,11 +91,17 @@ module fetch #( parameter XLEN = 32 )
     input                   branch_hit_i,
     input                   branch_decision_i,
 
+    // from RAP
+    input                   rap_hit_i,
+    input  [XLEN-1 : 0]     rap_addr_i,
+
     // to Decode
     output reg [XLEN-1 : 0] pc_o,
     output reg [XLEN-1 : 0] instruction_o,
     output reg              branch_hit_o,
     output reg              branch_decision_o,
+    output reg              rap_hit_o,
+    output reg [XLEN-1 : 0] rap_addr_o,
 
      // Has instruction fetch being successiful?
     output reg              fetch_valid_o, // Validity of the Fetch stage.
@@ -162,6 +168,8 @@ begin
         fetch_valid_o <= 1; // Fetched code is always valid when there is no MMU.
         branch_hit_o <= branch_hit_i;
         branch_decision_o <= branch_decision_i;
+        rap_hit_o <= rap_hit_i;
+        rap_addr_o <= rap_addr_i;
     end
 end
 

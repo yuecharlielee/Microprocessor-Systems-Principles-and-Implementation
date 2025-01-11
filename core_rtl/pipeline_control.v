@@ -68,10 +68,12 @@ module pipeline_control(
     input        unsupported_instr_i,
     input        is_load_hazard,
     input        branch_hit_i,
+    input        rap_hit_i,
 
     // from Execution.
     input        branch_taken_i,
     input        branch_misprediction_i,
+    input        rap_misprediction_i,
     input        is_fencei_i,
 
     // System Jump operation.
@@ -106,11 +108,20 @@ wire branch_flush;
     assign branch_flush = branch_taken_i;
 `endif
 
+wire rap_flush;
+`ifdef ENABLE_RETURN_ADDRESS_PREDICTION
+    // with return address predictor
+    assign rap_flush = rap_misprediction_i;
+`else
+    // without return address predictor
+    assign rap_flush = 0;
+`endif
+
 // ================================================================================
 //  Output signals
 //
-assign flush2fet_o = branch_flush | sys_jump_i | is_fencei_i;
-assign flush2dec_o = branch_flush | sys_jump_i | is_fencei_i | is_load_hazard | unsupported_instr_i;
+assign flush2fet_o = branch_flush | rap_flush | sys_jump_i | is_fencei_i;
+assign flush2dec_o = branch_flush | rap_flush | sys_jump_i | is_fencei_i | is_load_hazard | unsupported_instr_i;
 assign flush2exe_o = is_fencei_i | sys_jump_i;
 assign flush2mem_o = sys_jump_i;
 assign flush2wbk_o = sys_jump_i;
