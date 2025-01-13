@@ -93,7 +93,6 @@ module fetch #( parameter XLEN = 32 )
 
     // from RAP
     input                   rap_hit_i,
-    input  [XLEN-1 : 0]     rap_addr_i,
 
     // to Decode
     output reg [XLEN-1 : 0] pc_o,
@@ -146,6 +145,7 @@ begin
         pc_o <= 32'h00000000;
         fetch_valid_o <= 0;
         branch_hit_o <= 0;
+        rap_hit_o <= 0;
         branch_decision_o <= 0;
     end
     else if (stall_i)
@@ -153,6 +153,7 @@ begin
         pc_o <= pc_o;
         fetch_valid_o <= fetch_valid_o;
         branch_hit_o <= branch_hit_o;
+        rap_hit_o <= rap_hit_o;
         branch_decision_o <= branch_decision_o;
     end
     else if (flush_i)
@@ -160,6 +161,7 @@ begin
         pc_o <= pc_i;
         fetch_valid_o <= 0;
         branch_hit_o <= 0;
+        rap_hit_o <= 0;
         branch_decision_o <= 0;
     end
     else
@@ -169,7 +171,6 @@ begin
         branch_hit_o <= branch_hit_i;
         branch_decision_o <= branch_decision_i;
         rap_hit_o <= rap_hit_i;
-        rap_addr_o <= rap_addr_i;
     end
 end
 

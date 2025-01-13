@@ -95,14 +95,22 @@ module pipeline_control(
     output       flush2wbk_o,
 
     //  Signals that stall PCU and Fetch due to load-use data hazard,
-    output       data_hazard_o
+    output       data_hazard_o,
+
+    // Signal that flushes with branch prediction.
+    output       branch_flush_o
 );
 
 wire branch_flush;
 
 `ifdef ENABLE_BRANCH_PREDICTION
     // with branch predictor
+`ifdef ENABLE_RETURN_ADDRESS_PREDICTION
+    assign branch_flush = (branch_taken_i & !branch_hit_i & !rap_hit_i) | branch_misprediction_i;
+`else
     assign branch_flush = (branch_taken_i & !branch_hit_i) | branch_misprediction_i;
+`endif
+
 `else
     // without branch predictor
     assign branch_flush = branch_taken_i;
@@ -126,5 +134,6 @@ assign flush2exe_o = is_fencei_i | sys_jump_i;
 assign flush2mem_o = sys_jump_i;
 assign flush2wbk_o = sys_jump_i;
 assign data_hazard_o = is_load_hazard;
+assign branch_flush_o = branch_flush;
 
 endmodule

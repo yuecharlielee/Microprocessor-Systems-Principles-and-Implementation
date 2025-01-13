@@ -81,8 +81,8 @@ module execute #( parameter XLEN = 32 )
     input                   is_ret_i,
     input                   branch_hit_i,
     input                   branch_decision_i,
+    input  [XLEN-1 : 0]     dec_cur_pc_i,
     input                   rap_hit_i,
-    input  [XLEN-1 : 0]     rap_addr_i,
 
     input                   regfile_we_i,
     input  [ 2 : 0]         regfile_input_sel_i,
@@ -249,14 +249,19 @@ assign branch_restore_pc_o = pc_i + 'd4;  // The next PC of instruction, and the
                                           // restore PC if mispredicted branch taken.
 
 assign is_branch_o = is_branch_i | is_jal_i;
-assign is_ret_o = is_ret_i;
+assign is_ret_o = is_ret_i & rap_hit_i;
 assign branch_taken_o = (is_branch_i & compare_result) | is_jal_i | is_jalr_i;
 assign branch_misprediction_o = branch_hit_i & (branch_decision_i ^ branch_taken_o);
 
-assign rap_misprediction_o = rap_hit_i & (rap_addr_i != branch_target_addr_o);
-
 assign result = alu_muldiv_sel_i ? muldiv_result : alu_result;
 assign stall_from_exe_o = alu_muldiv_sel_i & !muldiv_ready;
+
+// ===============================================================================
+//  RAP
+//
+assign rap_misprediction_o = rap_hit_i & (dec_cur_pc_i != branch_target_addr_o) & is_ret_i;
+
+
 
 // ===============================================================================
 //  CSR

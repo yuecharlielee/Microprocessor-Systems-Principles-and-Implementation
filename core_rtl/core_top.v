@@ -377,6 +377,8 @@ wire stall_instr_fetch;
 wire stall_data_fetch;
 wire stall_pipeline;
 
+wire plc_branch_flush;
+
 assign stall_instr_fetch = (!code_ready_i);
 assign stall_data_fetch = (dS_nxt == d_WAIT) && (! exe_is_fencei);
 assign stall_pipeline = stall_instr_fetch | stall_data_fetch | stall_from_exe;
@@ -532,7 +534,10 @@ pipeline_control Pipeline_Control(
     .flush2wbk_o(plc2wbk_flush),
 
     // to PCU and Fetch
-    .data_hazard_o(stall_data_hazard)
+    .data_hazard_o(stall_data_hazard),
+
+    // to RAP
+    .branch_flush_o(plc_branch_flush)
 );
 
 // =============================================================================
@@ -616,11 +621,14 @@ rap #(.XLEN(XLEN)) Return_Address_Predictor(
     // from Execute
     .exe_is_return_i(exe_is_return2rap),
     // .return_target_addr_i(exe_branch_target_addr),
-    .rap_misprediction_i(exe_rap_misprediction),
+    // .rap_misprediction_i(exe_rap_misprediction),
 
     // to Program_Counter and fetch
     .return_addr_hit_o(rap_return_addr_hit),
     .return_addr_o(rap_return_addr)
+
+    // from pipeline control
+    // .flush_i(plc_branch_flush)
 );
 
 // =============================================================================
@@ -706,7 +714,6 @@ fetch Fetch(
 
     // from RAP
     .rap_hit_i(rap_return_addr_hit),
-    .rap_addr_i(rap_return_addr),
 
     // from I-memory
     .instruction_i(code_i),
@@ -744,7 +751,6 @@ decode Decode(
     .branch_hit_i(fet_branch_hit),
     .branch_decision_i(fet_branch_decision),
     .rap_hit_i(fet_rap_hit),
-    .rap_addr_i(fet_rap_addr),
 
     // Signals from CSR.
     .csr_data_i(csr2dec_data),
@@ -856,7 +862,7 @@ execute Execute(
     .branch_hit_i(dec_branch_hit),
     .branch_decision_i(dec_branch_decision), 
     .rap_hit_i(dec_rap_hit),
-    .rap_addr_i(dec_rap_addr),
+    .dec_cur_pc_i(fet2dec_pc),
 
     .regfile_we_i(dec2exe_regfile_we),
     .regfile_input_sel_i(dec2exe_regfile_sel),

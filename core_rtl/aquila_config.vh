@@ -82,7 +82,7 @@
 `define TCM_SIZE_IN_WORDS 16384   // 64KB
 
 // Branch Prediction
-// `define ENABLE_BRANCH_PREDICTION
+`define ENABLE_BRANCH_PREDICTION
 
 // Return Address Prediction
 `define ENABLE_RETURN_ADDRESS_PREDICTION

@@ -125,6 +125,8 @@ wire [XLEN-1 : 0] pc_increment;
 
 assign pc_increment = pc_r + pc_offset;
 
+(* mark_debug = "true" *) reg [XLEN-1 : 0] rap_hit_cnt;
+
 always @(posedge clk_i)
 begin
     if (rst_i)
@@ -139,16 +141,35 @@ begin
     if (is_fencei_i)
         pc_r <= dec_pc_i;
     else
+
+`ifdef ENABLE_RETURN_ADDRESS_PREDICTION
+    // with return address predictor
     if (exe_branch_taken_i & !dec_branch_hit_i & !dec_rap_hit_i)
         pc_r <= exe_branch_target_addr_i;
+`else 
+    // without return address predictor
+    if (exe_branch_taken_i & !dec_branch_hit_i)
+        pc_r <= exe_branch_target_addr_i;
+`endif
     else if (exe_branch_misprediction_i)
         pc_r <= dec_branch_decision_i ? exe_branch_restore_addr_i : exe_branch_target_addr_i;
+
+
+`ifdef ENABLE_RETURN_ADDRESS_PREDICTION
+    // with return address predictor
     else if (exe_rap_misprediction_i)
         pc_r <= exe_branch_target_addr_i;
+`endif
+
     else if (sys_jump_i)
         pc_r <= sys_jump_data_i;
+
+`ifdef ENABLE_RETURN_ADDRESS_PREDICTION
+    // with return address predictor
     else if (rap_return_addr_hit_i)
         pc_r <= rap_return_addr_i;
+`endif
+
     else if (bpu_branch_hit_i & bpu_branch_decision_i)
         pc_r <= bpu_branch_target_addr_i;
     else
@@ -157,6 +178,13 @@ begin
     // without branch predictor
     if (is_fencei_i)
         pc_r <= dec_pc_i;
+`ifdef ENABLE_RETURN_ADDRESS_PREDICTION
+    else if (exe_rap_misprediction_i) 
+        pc_r <= exe_branch_target_addr_i;
+    else if (rap_return_addr_hit_i)
+        pc_r <= rap_return_addr_i;
+`endif
+
     else if (exe_branch_taken_i) pc_r <= exe_branch_target_addr_i;
     else if (sys_jump_i) pc_r <= sys_jump_data_i;
     else pc_r <= pc_increment;
