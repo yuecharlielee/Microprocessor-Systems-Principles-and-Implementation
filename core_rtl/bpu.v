@@ -64,7 +64,7 @@
 // =============================================================================
 `include "aquila_config.vh"
 
-module bpu #( parameter ENTRY_NUM = 32, parameter XLEN = 32 )
+module bpu #( parameter ENTRY_NUM = 64, parameter XLEN = 32 )
 (
     // System signals
     input               clk_i,
@@ -107,8 +107,8 @@ reg  [1 : 0]            branch_likelihood[ENTRY_NUM-1 : 0];
 // CY Hsiang 0220_2020: added "~stall_i" to "we ="
 assign we = ~stall_i & (is_cond_branch_i | is_jal_i) & !BHT_hit;
 
-assign read_addr = pc_i[NBITS+2 : 2];
-assign write_addr = dec_pc_i[NBITS+2 : 2];
+assign read_addr = pc_i[NBITS+1 : 2];
+assign write_addr = dec_pc_i[NBITS+1 : 2];
 
 integer idx;
 

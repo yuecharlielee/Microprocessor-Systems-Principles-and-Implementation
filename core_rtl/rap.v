@@ -52,7 +52,7 @@
 // =============================================================================
 `include "aquila_config.vh"
 
-module rap #( parameter ENTRY_NUM = 512, parameter XLEN = 32, parameter STACK_ENTRY_NUM = 32)
+module rap #( parameter ENTRY_NUM = 4, parameter XLEN = 32, parameter STACK_ENTRY_NUM = 16, parameter TOS_ENTRY_NUM = 2)
 (
     // System signals
     input               clk_i,
@@ -72,19 +72,23 @@ module rap #( parameter ENTRY_NUM = 512, parameter XLEN = 32, parameter STACK_EN
     input               exe_is_return_i,
     input               rap_misprediction_i,
 
+    input               flush_i,
 
     // to Program_Counter
     output              return_addr_hit_o,
     output [XLEN-1 : 0] return_addr_o
+
 );
 
 localparam NBITS = $clog2(ENTRY_NUM);
-
 localparam stack_NBITS = $clog2(STACK_ENTRY_NUM);
+localparam TOS_NBITS = $clog2(TOS_ENTRY_NUM);
 
 wire [NBITS-1 : 0]             read_addr;
 wire [NBITS-1 : 0]             write_addr;
 wire [XLEN-1 : 0]              ret_inst_tag;
+wire [TOS_NBITS - 1:0]         read_addr_TOS;
+wire [TOS_NBITS - 1:0]         write_addr_TOS;
 wire                           re_RAS;
 wire                           we_RAS;
 wire                           we_BHT;
@@ -93,9 +97,9 @@ reg                            BHT_hit_ff, BHT_hit;
 reg  [stack_NBITS-1 : 0]       stack_pointer;
 reg  [XLEN-1 : 0]              stack[stack_NBITS-1 : 0];
 
+reg  [XLEN-1 : 0]              TOS[TOS_NBITS-1 : 0];
+reg  [TOS_NBITS-1 : 0]         TOS_pointer;
 
-wire [stack_NBITS - 1 : 0]  stack_pointer_plus_one = stack_pointer + 1 == STACK_ENTRY_NUM ? 0 : stack_pointer + 1;
-wire [stack_NBITS - 1 : 0]  stack_pointer_minus_one = stack_pointer  == 0 ? STACK_ENTRY_NUM - 1 : stack_pointer - 1;
 
 // "we" is enabled to add a new entry to the BHT table when
 // the decoded branch instruction is not in the BHT.
@@ -114,7 +118,7 @@ assign we_RAS = ~stall_i & (is_jal_i);
 assign read_addr = pc_i[NBITS+1 : 2];
 assign write_addr = dec_pc_i[NBITS+1 : 2];
 
-integer idx;
+integer idx, idx2;
 
 always @(posedge clk_i)
 begin
@@ -122,23 +126,40 @@ begin
     begin
         for (idx = 0; idx < STACK_ENTRY_NUM; idx = idx + 1)
             stack[idx] <= 0;
+
+        for (idx2 = 0; idx2 < TOS_ENTRY_NUM; idx2 = idx2 + 1)
+            TOS[idx2] <= 0;
     end
     else if (stall_i | stall_data_hazard_i)
     begin
         for (idx = 0; idx < STACK_ENTRY_NUM; idx = idx + 1)
             stack[idx] <= stack[idx];
+
+        for (idx2 = 0; idx2 < TOS_ENTRY_NUM; idx2 = idx2 + 1)
+            TOS[idx2] <= TOS[idx2];
     end
     else
     begin
         if (we_RAS) // Execute the jal instruction for the first time.
         begin
             // store the pc + 4 in stack when decode a jal insturction
-            stack_pointer <= stack_pointer_plus_one;
+            stack_pointer <= stack_pointer + 1;
             stack[stack_pointer] <= dec_pc_i + 4;
         end
-        else if(re_RAS)
+        else if(re_RAS) // pop the return address from the stack when the next instruction is a return instruction
         begin
-            stack_pointer <= stack_pointer_minus_one;
+            stack_pointer <= stack_pointer - 1;
+            TOS[TOS_pointer] <= stack[stack_pointer];
+            TOS_pointer <= TOS_pointer + 1;
+        end
+        // recover the stack pointer when the misprediction happens
+        else if(rap_misprediction_i && TOS_pointer != 0) begin
+            stack_pointer <= stack_pointer + 1;
+            stack[stack_pointer] <= TOS[TOS_pointer];
+            TOS_pointer <= TOS_pointer - 1;
+        end
+        else if(exe_is_return_i & TOS_pointer != 0) begin 
+            TOS_pointer <= TOS_pointer - 1;
         end
     end
 end
@@ -160,6 +181,9 @@ RAP_BHT(
     .data_o({ret_inst_tag})
 );
 
+
+
+
 // Delay the BHT hit flag at the Fetch stage for two clock cycles (plus stalls)
 // such that it can be reused at the Execute stage for BHT update operation.
 always @ (posedge clk_i)
@@ -178,7 +202,7 @@ end
 //  Outputs signals
 //
 assign return_addr_hit_o = (ret_inst_tag === pc_i) & (pc_i != 0);
-assign return_addr_o = stack[stack_pointer_minus_one];
+assign return_addr_o = stack[stack_pointer - 1];
 
 // counter with profiling
 (* mark_debug = "true" *) reg [XLEN-1 : 0] hit_counter;

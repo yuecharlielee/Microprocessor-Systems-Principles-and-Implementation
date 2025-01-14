@@ -621,14 +621,14 @@ rap #(.XLEN(XLEN)) Return_Address_Predictor(
     // from Execute
     .exe_is_return_i(exe_is_return2rap),
     // .return_target_addr_i(exe_branch_target_addr),
-    // .rap_misprediction_i(exe_rap_misprediction),
+    .rap_misprediction_i(exe_rap_misprediction),
 
     // to Program_Counter and fetch
     .return_addr_hit_o(rap_return_addr_hit),
-    .return_addr_o(rap_return_addr)
+    .return_addr_o(rap_return_addr),
 
     // from pipeline control
-    // .flush_i(plc_branch_flush)
+    .flush_i(plc_branch_flush)
 );
 
 // =============================================================================
