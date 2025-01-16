@@ -201,6 +201,15 @@ localparam Init             = 0,
 // Cache controller state registers
 reg [ 3 : 0] S, S_nxt;
 
+//=======================================================
+//  Lab3 counter
+//=======================================================
+(* mark_debug = "true" *) reg [XLEN-1:0] read_hit_latency, read_miss_latency;
+(* mark_debug = "true" *) reg [XLEN-1:0] write_hit_latency, write_miss_latency;
+(* mark_debug = "true" *) reg [XLEN-1:0] write_hit_counter, write_miss_counter;
+(* mark_debug = "true" *) reg [XLEN-1:0] read_hit_counter, read_miss_counter;
+(* mark_debug = "true" *) reg [XLEN-1:0] read_counter, write_counter;
+
 //====================================================
 // Cache Controller FSM
 //====================================================
@@ -774,4 +783,76 @@ generate
     end
 endgenerate
 
+
+
+//=======================================================
+//  Lab3 counter
+//=======================================================
+wire latency_flag = p_strobe_i & !p_ready_o;
+reg start_flag;
+
+
+always @(posedge clk_i) begin
+    if (rst_i) begin
+        read_hit_latency <= 0;
+        read_miss_latency <= 0;
+        write_hit_latency <= 0;
+        write_miss_latency <= 0;
+        write_hit_counter <= 0;
+        write_miss_counter <= 0;
+        read_hit_counter <= 0;
+        read_miss_counter <= 0;
+        read_counter <= 0;
+        write_counter <= 0;
+        start_flag <= 0;
+    end
+    else begin
+        if(S == Analysis) begin
+            if(rw) begin
+                write_counter <= write_counter + 1;
+                if(cache_hit) begin
+                    write_hit_counter <= write_hit_counter + 1;
+                end
+                else begin
+                    write_miss_counter <= write_miss_counter + 1;
+                end
+            end
+            else begin
+                read_counter <= read_counter + 1;
+                if(cache_hit) begin
+                    read_hit_counter <= read_hit_counter + 1;
+                end
+                else begin
+                    read_miss_counter <= read_miss_counter + 1;
+                end
+            end
+        end
+
+        if(start_flag) begin
+            if(rw) begin
+                if(cache_hit) begin
+                    write_hit_latency <= write_hit_latency + 1;
+                end
+                else begin
+                    write_miss_latency <= write_miss_latency + 1;
+                end
+            end
+            else begin
+                if(cache_hit) begin
+                    read_hit_latency <= read_hit_latency + 1;
+                end
+                else begin
+                    read_miss_latency <= read_miss_latency + 1;
+                end
+            end
+        end
+
+        if(p_strobe_i) begin
+            start_flag <= 1;
+        end
+        else if(p_ready_o) begin
+            start_flag <= 0;
+        end
+    end
+end
 endmodule
