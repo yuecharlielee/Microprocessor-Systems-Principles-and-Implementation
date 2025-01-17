@@ -377,9 +377,26 @@ end
 
 
 `ifdef PLRU
+`ifdef ways_2
+always @(posedge clk_i) 
+begin
+    if(S == Analysis && cache_hit) begin
+        if(way_hit[0]) begin
+            victim_sel <= 0; 
+        end
+        else if(way_hit[1]) begin
+            victim_sel <= 1;
+        end
+        else begin
+            victim_sel <= victim_sel;
+        end
+    end
+end
+`endif
 
 `ifdef ways_4
-always @(posedge clk_i) begin
+always @(posedge clk_i) 
+begin
     if(PLRU_cnt[0] == 0) begin
         if(PLRU_cnt[1] == 0) begin
             victim_sel <= 0;
@@ -402,30 +419,120 @@ always @(posedge clk_i)
 begin
     if(rst_i)
         for (idx = 0; idx < N_LINES; idx = idx + 1) PLRU_cnt[idx] <= 0;
-    else if(S == Analysis) begin
-        if(cache_hit) begin
-            if(way_hit[0]) begin
-                PLRU_cnt[0] <= 1;
-                PLRU_cnt[1] <= 1;
-            end
-            else if(way_hit[1]) begin
-                PLRU_cnt[0] <= 1;
-                PLRU_cnt[1] <= 0;
-            end
-            else if(way_hit[2]) begin
-                PLRU_cnt[0] <= 0;
-                PLRU_cnt[2] <= 1;
-            end
-            else if(way_hit[3]) begin
-                PLRU_cnt[0] <= 0;
-                PLRU_cnt[2] <= 0;
+    else if(S == Analysis && cache_hit) begin
+        if(way_hit[0]) begin
+            PLRU_cnt[0] <= 1;
+            PLRU_cnt[1] <= 1;
+        end
+        else if(way_hit[1]) begin
+            PLRU_cnt[0] <= 1;
+            PLRU_cnt[1] <= 0;
+        end
+        else if(way_hit[2]) begin
+            PLRU_cnt[0] <= 0;
+            PLRU_cnt[2] <= 1;
+        end
+        else if(way_hit[3]) begin
+            PLRU_cnt[0] <= 0;
+            PLRU_cnt[2] <= 0;
+        end
+        else begin
+            PLRU_cnt <= PLRU_cnt;
+        end
+    end
+end
+`endif
+
+`ifdef ways_8
+always @(posedge clk_i) 
+begin
+    if(PLRU_cnt[0] == 0) begin
+        if(PLRU_cnt[1] == 0) begin
+            if(PLRU_cnt[3] == 0) begin
+                victim_sel <= 0;
             end
             else begin
-                PLRU_cnt <= PLRU_cnt;
+                victim_sel <= 1;
+            end
+        end
+        else begin
+            if(PLRU_cnt[4] == 0) begin
+                victim_sel <= 2;
+            end
+            else begin
+                victim_sel <= 3;
+            end
+        end
+    end
+    else begin
+        if(PLRU_cnt[2] == 0) begin
+            if(PLRU_cnt[5] == 0) begin
+                victim_sel <= 4;
+            end
+            else begin
+                victim_sel <= 5;
+            end
+        end
+        else begin
+            if(PLRU_cnt[6] == 0) begin
+                victim_sel <= 6;
+            end
+            else begin
+                victim_sel <= 7;
             end
         end
     end
 end
+
+always @(posedge clk_i)
+begin
+    if(S == Analysis && cache_hit) begin
+        if(way_hit[0]) begin
+            PLRU_cnt[0] <= 1;
+            PLRU_cnt[1] <= 1;
+            RLRU_cnt[3] <= 1;
+        end
+        else if(way_hit[1]) begin
+            PLRU_cnt[0] <= 1;
+            PLRU_cnt[1] <= 1;
+            RLRU_cnt[3] <= 0;
+        end
+        else if(way_hit[2]) begin
+            PLRU_cnt[0] <= 1;
+            PLRU_cnt[1] <= 0;
+            RLRU_cnt[4] <= 1;
+        end
+        else if(way_hit[3]) begin
+            PLRU_cnt[0] <= 1;
+            PLRU_cnt[1] <= 0;
+            RLRU_cnt[4] <= 0;
+        end
+        else if(way_hit[4]) begin
+            PLRU_cnt[0] <= 0;
+            PLRU_cnt[2] <= 1;
+            RLRU_cnt[5] <= 1;
+        end
+        else if(way_hit[5]) begin
+            PLRU_cnt[0] <= 0;
+            PLRU_cnt[2] <= 1;
+            RLRU_cnt[5] <= 0;
+        end
+        else if(way_hit[6]) begin
+            PLRU_cnt[0] <= 0;
+            PLRU_cnt[2] <= 0;
+            RLRU_cnt[6] <= 1;
+        end
+        else if(way_hit[7]) begin
+            PLRU_cnt[0] <= 0;
+            PLRU_cnt[2] <= 0;
+            RLRU_cnt[6] <= 0;
+        end
+        else begin
+            PLRU_cnt <= PLRU_cnt;
+        end
+    end
+end
+
 `endif
 
 `endif
@@ -905,7 +1012,8 @@ reg start_flag;
 
 
 
-always @(posedge clk_i) begin
+always @(posedge clk_i) 
+begin
     if (rst_i) begin
         read_hit_latency <= 0;
         read_miss_latency <= 0;
