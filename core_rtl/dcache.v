@@ -74,13 +74,13 @@ module dcache
     input                     clk_i, rst_i,
 
     /////////// Processor signals //////////////////////////////////////////////
-    input                     p_strobe_i,      // Processor request signal.
+    (* mark_debug = "true" *) input                     p_strobe_i,      // Processor request signal.
     input                     p_rw_i,          // 0 for read, 1 for write.
     input  [XLEN/8-1 : 0]     p_byte_enable_i, // Byte-enable signal.
     input  [XLEN-1 : 0]       p_addr_i,        // Memory addr of the request.
     input  [XLEN-1 : 0]       p_data_i,        // Data to main memory.
     output reg [XLEN-1 : 0]   p_data_o,        // Data from main memory.
-    output                    p_ready_o,       // The cache data is ready.
+    (* mark_debug = "true" *) output                    p_ready_o,       // The cache data is ready.
     input                     p_flush_i,       // Cache flush request.
 
     /////////// External memory signals   //////////////////////////////////////
@@ -104,7 +104,7 @@ module dcache
 //=======================================================
 // Cache parameters
 //=======================================================
-localparam N_WAYS      = 4;
+localparam N_WAYS      = `WAYS;
 localparam N_LINES     = (CACHE_SIZE*1024*8) / (N_WAYS*CLSIZE);
 
 localparam WAY_BITS    = $clog2(N_WAYS);
@@ -117,9 +117,9 @@ localparam TAG_BITS    = XLEN - NONTAG_BITS;
 //=======================================================
 // N-way associative cache signals
 //=======================================================
-wire                   way_hit[0 : N_WAYS-1];     // Cache-way hit flag.
+(* mark_debug = "true" *) wire                   way_hit[0 : N_WAYS-1];     // Cache-way hit flag.
 reg  [WAY_BITS-1 : 0]  hit_index;                 // Decoded way_hit[] signal.
-wire                   cache_hit;                 // Got a cache hit?
+(* mark_debug = "true" *) wire                   cache_hit;                 // Got a cache hit?
 reg  [CLSIZE-1 : 0]    c_data_i;                  // Data to write into cache.
 reg  [CLSIZE-1 : 0]    c_data_update;             // Updated cache data.
 reg  [CLSIZE-1 : 0]    m_data_update;             // Updated memory data.
@@ -142,6 +142,12 @@ assign c_data_hit = c_block[hit_index];
 //=======================================================
 reg  [WAY_BITS-1 : 0] FIFO_cnt[0 : N_LINES-1];   // Replace policy counter.
 reg  [WAY_BITS-1 : 0] victim_sel;                // The victim cache select.
+
+//=======================================================
+// Psuedo LRU replacement policy signals
+//=======================================================
+reg  [N_WAYS-1: 0] PLRU_cnt;   // Replace policy counter.
+
 
 //=======================================================
 // Cache line and tag calculations
@@ -288,13 +294,28 @@ begin
         init_count <= {LINE_BITS{1'b0}};
 end
 
+`ifdef ways_2
 // Check and see if any cache way has the matched memory block.
-assign way_hit[0] = (c_valid_o[0] && (c_tag_o[0] == tag))? 1 : 0;
-assign way_hit[1] = (c_valid_o[1] && (c_tag_o[1] == tag))? 1 : 0;
-assign way_hit[2] = (c_valid_o[2] && (c_tag_o[2] == tag))? 1 : 0;
-assign way_hit[3] = (c_valid_o[3] && (c_tag_o[3] == tag))? 1 : 0;
-assign cache_hit  = (way_hit[0] || way_hit[1] || way_hit[2] || way_hit[3]);
+assign  way_hit[0] = (c_valid_o[0] && (c_tag_o[0] == tag))? 1 : 0;
+assign  way_hit[1] = (c_valid_o[1] && (c_tag_o[1] == tag))? 1 : 0;
+assign  cache_hit  = (way_hit[0] || way_hit[1]);
 
+always @(*)
+begin
+    case ( { way_hit[0], way_hit[1] } )
+        2'b10: hit_index = 0;
+        2'b01: hit_index = 1;
+        default: hit_index = 0; // error: multiple-way hit!
+    endcase
+end
+`endif
+
+`ifdef ways_4
+assign    way_hit[0] = (c_valid_o[0] && (c_tag_o[0] == tag))? 1 : 0;
+assign    way_hit[1] = (c_valid_o[1] && (c_tag_o[1] == tag))? 1 : 0;
+assign    way_hit[2] = (c_valid_o[2] && (c_tag_o[2] == tag))? 1 : 0;
+assign    way_hit[3] = (c_valid_o[3] && (c_tag_o[3] == tag))? 1 : 0;
+assign    cache_hit  = (way_hit[0] || way_hit[1] || way_hit[2] || way_hit[3]);
 always @(*)
 begin
     case ( { way_hit[0], way_hit[1], way_hit[2], way_hit[3] } )
@@ -305,7 +326,41 @@ begin
         default: hit_index = 0; // error: multiple-way hit!
     endcase
 end
+`endif
 
+`ifdef ways_8
+assign    way_hit[0] = (c_valid_o[0] && (c_tag_o[0] == tag))? 1 : 0;
+assign    way_hit[1] = (c_valid_o[1] && (c_tag_o[1] == tag))? 1 : 0;
+assign    way_hit[2] = (c_valid_o[2] && (c_tag_o[2] == tag))? 1 : 0;
+assign    way_hit[3] = (c_valid_o[3] && (c_tag_o[3] == tag))? 1 : 0;
+assign    way_hit[4] = (c_valid_o[4] && (c_tag_o[4] == tag))? 1 : 0;
+assign    way_hit[5] = (c_valid_o[5] && (c_tag_o[5] == tag))? 1 : 0;
+assign    way_hit[6] = (c_valid_o[6] && (c_tag_o[6] == tag))? 1 : 0;
+assign    way_hit[7] = (c_valid_o[7] && (c_tag_o[7] == tag))? 1 : 0;
+assign    cache_hit  = (way_hit[0] || way_hit[1] || way_hit[2] || way_hit[3] ||
+                    way_hit[4] || way_hit[5] || way_hit[6] || way_hit[7]);
+always @(*)
+begin
+    case ( { way_hit[0], way_hit[1], way_hit[2], way_hit[3],
+                way_hit[4], way_hit[5], way_hit[6], way_hit[7] } )
+        8'b10000000: hit_index = 0;
+        8'b01000000: hit_index = 1;
+        8'b00100000: hit_index = 2;
+        8'b00010000: hit_index = 3;
+        8'b00001000: hit_index = 4;
+        8'b00000100: hit_index = 5;
+        8'b00000010: hit_index = 6;
+        8'b00000001: hit_index = 7;
+        default: hit_index = 0; // error: multiple-way hit!
+    endcase
+end 
+`endif
+
+
+//=======================================================
+// Cache replacement policy
+//=======================================================
+`ifdef FIFO
 always @(posedge clk_i)
 begin
     victim_sel <= FIFO_cnt[line_index];
@@ -318,6 +373,63 @@ begin
     else if (S == RdfromMemFinish)
         FIFO_cnt[line_index] <= FIFO_cnt[line_index] + 1;
 end
+`endif
+
+
+`ifdef PLRU
+
+`ifdef ways_4
+always @(posedge clk_i) begin
+    if(PLRU_cnt[0] == 0) begin
+        if(PLRU_cnt[1] == 0) begin
+            victim_sel <= 0;
+        end
+        else begin
+            victim_sel <= 1;
+        end
+    end
+    else begin
+        if(PLRU_cnt[2] == 0) begin
+            victim_sel <= 2;
+        end
+        else begin
+            victim_sel <= 3;
+        end
+    end
+end
+
+always @(posedge clk_i)
+begin
+    if(rst_i)
+        for (idx = 0; idx < N_LINES; idx = idx + 1) PLRU_cnt[idx] <= 0;
+    else if(S == Analysis) begin
+        if(cache_hit) begin
+            if(way_hit[0]) begin
+                PLRU_cnt[0] <= 1;
+                PLRU_cnt[1] <= 1;
+            end
+            else if(way_hit[1]) begin
+                PLRU_cnt[0] <= 1;
+                PLRU_cnt[1] <= 0;
+            end
+            else if(way_hit[2]) begin
+                PLRU_cnt[0] <= 0;
+                PLRU_cnt[2] <= 1;
+            end
+            else if(way_hit[3]) begin
+                PLRU_cnt[0] <= 0;
+                PLRU_cnt[2] <= 0;
+            end
+            else begin
+                PLRU_cnt <= PLRU_cnt;
+            end
+        end
+    end
+end
+`endif
+
+`endif
+
 
 //====================================================
 // Register some signals from the processor/memory.
@@ -788,8 +900,9 @@ endgenerate
 //=======================================================
 //  Lab3 counter
 //=======================================================
-wire latency_flag = p_strobe_i & !p_ready_o;
+
 reg start_flag;
+
 
 
 always @(posedge clk_i) begin
@@ -853,6 +966,12 @@ always @(posedge clk_i) begin
         else if(p_ready_o) begin
             start_flag <= 0;
         end
+        else begin
+             start_flag <= start_flag;
+        end 
     end
 end
+
+
+
 endmodule
