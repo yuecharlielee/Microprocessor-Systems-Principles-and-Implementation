@@ -138,15 +138,30 @@ integer idx;
 assign c_data_hit = c_block[hit_index];
 
 //=======================================================
+// Replacement policy signals
+//=======================================================
+reg  [WAY_BITS-1 : 0] victim_sel;                // The victim cache select.
+
+`ifdef FIFO
+//=======================================================
 // FIFO replacement policy signals
 //=======================================================
 reg  [WAY_BITS-1 : 0] FIFO_cnt[0 : N_LINES-1];   // Replace policy counter.
-reg  [WAY_BITS-1 : 0] victim_sel;                // The victim cache select.
+`endif
 
+`ifdef PLRU
 //=======================================================
 // Psuedo LRU replacement policy signals
 //=======================================================
 reg  [N_WAYS-1: 0] PLRU_cnt;   // Replace policy counter.
+`endif
+
+`ifdef RANDOM
+//=======================================================
+// Random replacement policy signals
+//=======================================================
+reg [4:0] random;
+`endif
 
 
 //=======================================================
@@ -532,9 +547,38 @@ begin
         end
     end
 end
-
+`endif
 `endif
 
+`ifdef RANDOM
+`ifdef ways_2
+always @(posedge clk_i) begin
+    victim_sel <= {random[0]};
+end
+`endif
+
+`ifdef ways_4
+always @(posedge clk_i) begin
+    victim_sel <= {random[1:0]};
+end
+`endif
+
+`ifdef ways_8
+always @(posedge clk_i) begin
+    victim_sel <= {random[2:0]};
+end
+`endif
+
+wire feedback = random[4] ^ random[0];
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        random <= 0;
+    end
+    else begin
+        random <= {random[3:0], feedback};
+    end
+end
 `endif
 
 
