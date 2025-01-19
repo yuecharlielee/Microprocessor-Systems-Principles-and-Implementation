@@ -163,6 +163,9 @@ reg  [N_WAYS-1: 0] PLRU_cnt;   // Replace policy counter.
 reg [4:0] random;
 `endif
 
+`ifdef LRU
+reg [N_WAYS-1: 0] LRU_cnt[N_WAYS-1:0];   // Replace policy counter. 
+`endif
 
 //=======================================================
 // Cache line and tag calculations
@@ -397,10 +400,10 @@ always @(posedge clk_i)
 begin
     if(S == Analysis && cache_hit) begin
         if(way_hit[0]) begin
-            victim_sel <= 0; 
+            victim_sel <= 1; 
         end
         else if(way_hit[1]) begin
-            victim_sel <= 1;
+            victim_sel <= 0;
         end
         else begin
             victim_sel <= victim_sel;
@@ -505,42 +508,42 @@ begin
         if(way_hit[0]) begin
             PLRU_cnt[0] <= 1;
             PLRU_cnt[1] <= 1;
-            RLRU_cnt[3] <= 1;
+            PLRU_cnt[3] <= 1;
         end
         else if(way_hit[1]) begin
             PLRU_cnt[0] <= 1;
             PLRU_cnt[1] <= 1;
-            RLRU_cnt[3] <= 0;
+            PLRU_cnt[3] <= 0;
         end
         else if(way_hit[2]) begin
             PLRU_cnt[0] <= 1;
             PLRU_cnt[1] <= 0;
-            RLRU_cnt[4] <= 1;
+            PLRU_cnt[4] <= 1;
         end
         else if(way_hit[3]) begin
             PLRU_cnt[0] <= 1;
             PLRU_cnt[1] <= 0;
-            RLRU_cnt[4] <= 0;
+            PLRU_cnt[4] <= 0;
         end
         else if(way_hit[4]) begin
             PLRU_cnt[0] <= 0;
             PLRU_cnt[2] <= 1;
-            RLRU_cnt[5] <= 1;
+            PLRU_cnt[5] <= 1;
         end
         else if(way_hit[5]) begin
             PLRU_cnt[0] <= 0;
             PLRU_cnt[2] <= 1;
-            RLRU_cnt[5] <= 0;
+            PLRU_cnt[5] <= 0;
         end
         else if(way_hit[6]) begin
             PLRU_cnt[0] <= 0;
             PLRU_cnt[2] <= 0;
-            RLRU_cnt[6] <= 1;
+            PLRU_cnt[6] <= 1;
         end
         else if(way_hit[7]) begin
             PLRU_cnt[0] <= 0;
             PLRU_cnt[2] <= 0;
-            RLRU_cnt[6] <= 0;
+            PLRU_cnt[6] <= 0;
         end
         else begin
             PLRU_cnt <= PLRU_cnt;
@@ -553,19 +556,25 @@ end
 `ifdef RANDOM
 `ifdef ways_2
 always @(posedge clk_i) begin
-    victim_sel <= {random[0]};
+    if(S == Analysis && cache_hit) begin
+        victim_sel <= {random[0]};
+    end
 end
 `endif
 
 `ifdef ways_4
 always @(posedge clk_i) begin
-    victim_sel <= {random[1:0]};
+    if(S == Analysis && cache_hit) begin
+        victim_sel <= {random[1:0]};
+    end
 end
 `endif
 
 `ifdef ways_8
 always @(posedge clk_i) begin
-    victim_sel <= {random[2:0]};
+    if(S == Analysis && cache_hit) begin
+        victim_sel <= {random[2:0]};
+    end
 end
 `endif
 
@@ -573,13 +582,279 @@ wire feedback = random[4] ^ random[0];
 
 always @(posedge clk_i) begin
     if(rst_i) begin
-        random <= 0;
+        random <= 5'b11111;
     end
     else begin
         random <= {random[3:0], feedback};
     end
 end
 `endif
+
+`ifdef LRU
+`ifdef ways_2
+always @(posedge clk_i) begin
+    if(S == Analysis && cache_hit) begin
+        if(way_hit[0]) begin
+            victim_sel <= 1;
+        end
+        else if(way_hit[1]) begin
+            victim_sel <= 0;
+        end
+        else begin
+            victim_sel <= victim_sel;
+        end
+    end
+end
+`endif
+`ifdef ways_4
+always @(posedge clk_i) begin
+    if(LRU_cnt[0] == 0) begin
+        victim_sel <= 0;
+    end
+    else if(LRU_cnt[1] == 0) begin
+        victim_sel <= 1;
+    end
+    else if(LRU_cnt[2] == 0) begin
+        victim_sel <= 2;
+    end
+    else if(LRU_cnt[3] == 0) begin
+        victim_sel <= 3;
+    end
+    else begin
+        victim_sel <= 0;
+    end
+end
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        LRU_cnt[0] <= 0;
+        LRU_cnt[1] <= 0;
+        LRU_cnt[2] <= 0;
+        LRU_cnt[3] <= 0;
+    end
+    else if(S == Analysis && cache_hit) begin
+        if(way_hit[0]) begin
+            LRU_cnt[0][0] <= 0;
+            LRU_cnt[1][0] <= 0;
+            LRU_cnt[2][0] <= 0;
+            LRU_cnt[3][0] <= 0;
+            LRU_cnt[0][1] <= 1;
+            LRU_cnt[0][2] <= 1;
+            LRU_cnt[0][3] <= 1;
+        end
+        else if(way_hit[1]) begin
+            LRU_cnt[0][1] <= 0;
+            LRU_cnt[1][1] <= 0;
+            LRU_cnt[2][1] <= 0;
+            LRU_cnt[3][1] <= 0;
+            LRU_cnt[1][0] <= 1;
+            LRU_cnt[1][2] <= 1;
+            LRU_cnt[1][3] <= 1;
+        end
+        else if(way_hit[2]) begin
+            LRU_cnt[0][2] <= 0;
+            LRU_cnt[1][2] <= 0;
+            LRU_cnt[2][2] <= 0;
+            LRU_cnt[3][2] <= 0;
+            LRU_cnt[2][0] <= 1;
+            LRU_cnt[2][1] <= 1;
+            LRU_cnt[2][3] <= 1;
+        end
+        else if(way_hit[3]) begin
+            LRU_cnt[0][3] <= 0;
+            LRU_cnt[1][3] <= 0;
+            LRU_cnt[2][3] <= 0;
+            LRU_cnt[3][3] <= 0;
+            LRU_cnt[3][0] <= 1;
+            LRU_cnt[3][1] <= 1;
+            LRU_cnt[3][2] <= 1;
+        end
+    end
+end
+`endif
+`ifdef ways_8
+always @(posedge clk_i) begin
+    if(LRU_cnt[0] == 0) begin
+        victim_sel <= 0;
+    end
+    else if(LRU_cnt[1] == 0) begin
+        victim_sel <= 1;
+    end
+    else if(LRU_cnt[2] == 0) begin
+        victim_sel <= 2;
+    end
+    else if(LRU_cnt[3] == 0) begin
+        victim_sel <= 3;
+    end
+    else if(LRU_cnt[4] == 0) begin
+        victim_sel <= 4;
+    end
+    else if(LRU_cnt[5] == 0) begin
+        victim_sel <= 5;
+    end
+    else if(LRU_cnt[6] == 0) begin
+        victim_sel <= 6;
+    end
+    else if(LRU_cnt[7] == 0) begin
+        victim_sel <= 7;
+    end
+    else begin
+        victim_sel <= 0;
+    end
+end
+
+always @(posedge clk_i) begin
+if(rst_i) begin
+        LRU_cnt[0] <= 0;
+        LRU_cnt[1] <= 0;
+        LRU_cnt[2] <= 0;
+        LRU_cnt[3] <= 0;
+        LRU_cnt[4] <= 0;
+        LRU_cnt[5] <= 0;
+        LRU_cnt[6] <= 0;
+        LRU_cnt[7] <= 0;
+    end
+    else if(S == Analysis && cache_hit) begin
+        if(way_hit[0]) begin
+            LRU_cnt[0][0] <= 0;
+            LRU_cnt[1][0] <= 0;
+            LRU_cnt[2][0] <= 0;
+            LRU_cnt[3][0] <= 0;
+            LRU_cnt[4][0] <= 0;
+            LRU_cnt[5][0] <= 0;
+            LRU_cnt[6][0] <= 0;
+            LRU_cnt[7][0] <= 0;
+            LRU_cnt[0][1] <= 1;
+            LRU_cnt[0][2] <= 1;
+            LRU_cnt[0][3] <= 1;
+            LRU_cnt[0][4] <= 1;
+            LRU_cnt[0][5] <= 1;
+            LRU_cnt[0][6] <= 1;
+            LRU_cnt[0][7] <= 1;
+        end
+        else if(way_hit[1]) begin
+            LRU_cnt[0][1] <= 0;
+            LRU_cnt[1][1] <= 0;
+            LRU_cnt[2][1] <= 0;
+            LRU_cnt[3][1] <= 0;
+            LRU_cnt[4][1] <= 0;
+            LRU_cnt[5][1] <= 0;
+            LRU_cnt[6][1] <= 0;
+            LRU_cnt[7][1] <= 0;
+            LRU_cnt[1][0] <= 1;
+            LRU_cnt[1][2] <= 1;
+            LRU_cnt[1][3] <= 1;
+            LRU_cnt[1][4] <= 1;
+            LRU_cnt[1][5] <= 1;
+            LRU_cnt[1][6] <= 1;
+            LRU_cnt[1][7] <= 1;
+        end
+        else if(way_hit[2]) begin
+            LRU_cnt[0][2] <= 0;
+            LRU_cnt[1][2] <= 0;
+            LRU_cnt[2][2] <= 0;
+            LRU_cnt[3][2] <= 0;
+            LRU_cnt[4][2] <= 0;
+            LRU_cnt[5][2] <= 0;
+            LRU_cnt[6][2] <= 0;
+            LRU_cnt[7][2] <= 0;
+            LRU_cnt[2][0] <= 1;
+            LRU_cnt[2][1] <= 1;
+            LRU_cnt[2][3] <= 1;
+            LRU_cnt[2][4] <= 1;
+            LRU_cnt[2][5] <= 1;
+            LRU_cnt[2][6] <= 1;
+            LRU_cnt[2][7] <= 1;
+        end
+        else if(way_hit[3]) begin
+            LRU_cnt[0][3] <= 0;
+            LRU_cnt[1][3] <= 0;
+            LRU_cnt[2][3] <= 0;
+            LRU_cnt[3][3] <= 0;
+            LRU_cnt[4][3] <= 0;
+            LRU_cnt[5][3] <= 0;
+            LRU_cnt[6][3] <= 0;
+            LRU_cnt[7][3] <= 0;
+            LRU_cnt[3][0] <= 1;
+            LRU_cnt[3][1] <= 1;
+            LRU_cnt[3][2] <= 1;
+            LRU_cnt[3][4] <= 1;
+            LRU_cnt[3][5] <= 1;
+            LRU_cnt[3][6] <= 1;
+            LRU_cnt[3][7] <= 1;
+        end
+        else if(way_hit[4]) begin
+            LRU_cnt[0][4] <= 0;
+            LRU_cnt[1][4] <= 0;
+            LRU_cnt[2][4] <= 0;
+            LRU_cnt[3][4] <= 0;
+            LRU_cnt[4][4] <= 0;
+            LRU_cnt[5][4] <= 0;
+            LRU_cnt[6][4] <= 0;
+            LRU_cnt[7][4] <= 0;
+            LRU_cnt[4][0] <= 1;
+            LRU_cnt[4][1] <= 1;
+            LRU_cnt[4][2] <= 1;
+            LRU_cnt[4][3] <= 1;
+            LRU_cnt[4][5] <= 1;
+            LRU_cnt[4][6] <= 1;
+            LRU_cnt[4][7] <= 1;
+        end
+        else if(way_hit[5]) begin
+            LRU_cnt[0][5] <= 0;
+            LRU_cnt[1][5] <= 0;
+            LRU_cnt[2][5] <= 0;
+            LRU_cnt[3][5] <= 0;
+            LRU_cnt[4][5] <= 0;
+            LRU_cnt[5][5] <= 0;
+            LRU_cnt[6][5] <= 0;
+            LRU_cnt[7][5] <= 0;
+            LRU_cnt[5][0] <= 1;
+            LRU_cnt[5][1] <= 1;
+            LRU_cnt[5][2] <= 1;
+            LRU_cnt[5][3] <= 1;
+            LRU_cnt[5][4] <= 1;
+            LRU_cnt[5][6] <= 1;
+            LRU_cnt[5][7] <= 1;
+        end
+        else if(way_hit[6]) begin
+            LRU_cnt[0][6] <= 0;
+            LRU_cnt[1][6] <= 0;
+            LRU_cnt[2][6] <= 0;
+            LRU_cnt[3][6] <= 0;
+            LRU_cnt[4][6] <= 0;
+            LRU_cnt[5][6] <= 0;
+            LRU_cnt[6][6] <= 0;
+            LRU_cnt[7][6] <= 0;
+            LRU_cnt[6][0] <= 1;
+            LRU_cnt[6][1] <= 1;
+            LRU_cnt[6][2] <= 1;
+            LRU_cnt[6][3] <= 1;
+            LRU_cnt[6][4] <= 1;
+            LRU_cnt[6][5] <= 1;
+            LRU_cnt[6][7] <= 1;
+        end
+        else if(way_hit[7]) begin
+            LRU_cnt[0][7] <= 0;
+            LRU_cnt[1][7] <= 0;
+            LRU_cnt[2][7] <= 0;
+            LRU_cnt[3][7] <= 0;
+            LRU_cnt[4][7] <= 0;
+            LRU_cnt[5][7] <= 0;
+            LRU_cnt[6][7] <= 0;
+            LRU_cnt[7][7] <= 0;
+            LRU_cnt[7][0] <= 1;
+            LRU_cnt[7][1] <= 1;
+            LRU_cnt[7][2] <= 1;
+            LRU_cnt[7][3] <= 1;
+            LRU_cnt[7][4] <= 1;
+            LRU_cnt[7][5] <= 1;
+            LRU_cnt[7][6] <= 1;
+        end
+    end
+end
+`endif
+`endif 
 
 
 //====================================================

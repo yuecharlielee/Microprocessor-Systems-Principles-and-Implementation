@@ -85,11 +85,11 @@
 `define ENABLE_DDRx_MEMORY
 `define ICACHE_SIZE 4  // Instruction cache size in KB
 `define DCACHE_SIZE 4  // Data cache size in KB
-`define WAYS 2         // n-way set associative cache
+`define WAYS 4         // n-way set associative cache
 
 // Cache n-way set associative
-`define ways_2 
-// `define ways_4
+// `define ways_2 
+`define ways_4
 // `define ways_8
 
 // Cache Replacement Policy
