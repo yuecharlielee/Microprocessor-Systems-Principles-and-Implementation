@@ -117,9 +117,9 @@ localparam TAG_BITS    = XLEN - NONTAG_BITS;
 //=======================================================
 // N-way associative cache signals
 //=======================================================
-(* mark_debug = "true" *) wire                   way_hit[0 : N_WAYS-1];     // Cache-way hit flag.
+wire                   way_hit[0 : N_WAYS-1];     // Cache-way hit flag.
 reg  [WAY_BITS-1 : 0]  hit_index;                 // Decoded way_hit[] signal.
-(* mark_debug = "true" *) wire                   cache_hit;                 // Got a cache hit?
+wire                   cache_hit;                 // Got a cache hit?
 reg  [CLSIZE-1 : 0]    c_data_i;                  // Data to write into cache.
 reg  [CLSIZE-1 : 0]    c_data_update;             // Updated cache data.
 reg  [CLSIZE-1 : 0]    m_data_update;             // Updated memory data.
@@ -228,11 +228,17 @@ reg [ 3 : 0] S, S_nxt;
 //=======================================================
 //  Lab3 counter
 //=======================================================
-(* mark_debug = "true" *) reg [XLEN-1:0] read_hit_latency, read_miss_latency;
-(* mark_debug = "true" *) reg [XLEN-1:0] write_hit_latency, write_miss_latency;
-(* mark_debug = "true" *) reg [XLEN-1:0] write_hit_counter, write_miss_counter;
-(* mark_debug = "true" *) reg [XLEN-1:0] read_hit_counter, read_miss_counter;
-(* mark_debug = "true" *) reg [XLEN-1:0] read_counter, write_counter;
+// (* mark_debug = "true" *) reg [XLEN-1:0] read_hit_latency, read_miss_latency;
+// (* mark_debug = "true" *) reg [XLEN-1:0] write_hit_latency, write_miss_latency;
+// (* mark_debug = "true" *) reg [XLEN-1:0] write_hit_counter, write_miss_counter;
+// (* mark_debug = "true" *) reg [XLEN-1:0] read_hit_counter, read_miss_counter;
+// (* mark_debug = "true" *) reg [XLEN-1:0] read_counter, write_counter;
+reg [XLEN-1:0] read_hit_latency, read_miss_latency;
+reg [XLEN-1:0] write_hit_latency, write_miss_latency;
+reg [XLEN-1:0] write_hit_counter, write_miss_counter;
+reg [XLEN-1:0] read_hit_counter, read_miss_counter;
+reg [XLEN-1:0] read_counter, write_counter;
+
 
 //====================================================
 // Cache Controller FSM
