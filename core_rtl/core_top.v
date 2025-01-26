@@ -1047,4 +1047,68 @@ CSR(
     .xcpt_tval_i(wbk2csr_xcpt_tval)
 );
 
+
+// =============================================================================
+// Lab4 
+reg task1_done, task2_done;
+reg context_switch_latency_flag;
+wire finish = task1_done && task2_done;
+(* mark_debug = "true" *) reg [XLEN-1:0] context_switch_latency_counter;
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        context_switch_latency_flag <= 0;
+    end
+    else begin
+        if(pcu_pc == 32'h8000_7300 && !finish) begin
+            context_switch_latency_flag <= 1;
+        end
+        //dont use mutex
+        //80001000~800010b8(vTaskDelete)  <Task2_Handler>: 
+        //800010bc~800012b4(vTaskDelete)  <Task1_Handler>: 
+        else if(pcu_pc == 32'h8000_74e8) begin
+            context_switch_latency_flag <= 0;
+        end
+        else begin
+            context_switch_latency_flag <= context_switch_latency_flag;
+        end
+    end
+end
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        task1_done <= 0;
+    end
+    else if(pcu_pc == 32'h8000_10b8 && !task1_done) begin
+        task1_done <= 1;
+    end
+    else begin
+        task1_done <= task1_done;
+    end
+end
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        task2_done <= 0;
+    end
+    else if(pcu_pc == 32'h8000_12b4 && !task2_done) begin
+        task2_done <= 1;
+    end
+    else begin
+        task2_done <= task2_done;
+    end
+end
+
+always @(posedge clk_i) begin
+    if (rst_i) begin
+        context_switch_latency_counter <= 0;
+    end 
+    else if(context_switch_latency_flag) begin
+        context_switch_latency_counter <= context_switch_latency_counter + 1;
+    end
+    else begin
+        context_switch_latency_counter <= context_switch_latency_counter;
+    end
+end
+
 endmodule
