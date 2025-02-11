@@ -336,6 +336,9 @@ clint CLINT(
     .sft_irq_o(sft_irq)
 );
 
+
+
+
 // ----------------------------------------------------------------------------
 //  The Atomic Unit (Overseer of RISCV atomic instructions).
 //

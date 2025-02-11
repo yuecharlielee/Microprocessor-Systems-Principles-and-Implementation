@@ -260,8 +260,9 @@ aquila_top Aquila_SoC
 //       [2] 0xC400_0000 - 0xC4FF_FFFF : DSA device
 assign uart_sel  = (dev_addr[XLEN-1:XLEN-8] == 8'hC0);
 assign spi_sel   = (dev_addr[XLEN-1:XLEN-8] == 8'hC2);
-assign dev_dout  = (uart_sel)? uart_dout : (spi_sel)? spi_dout : {XLEN{1'b0}};
-assign dev_ready = (uart_sel)? uart_ready : (spi_sel)? spi_ready : {XLEN{1'b0}};
+assign dsa_sel   = (dev_addr[XLEN-1:XLEN-8] == 8'hC4);
+assign dev_dout  = (uart_sel)? uart_dout : (dsa_sel)? dsa_dout : (spi_sel)? spi_dout : {XLEN{1'b0}};
+assign dev_ready = (uart_sel)? uart_ready : (dsa_sel) ? dsa_ready : (spi_sel)? spi_ready : {XLEN{1'b0}};
 
 // ----------------------------------------------------------------------------
 //  UART Controller with a simple memory-mapped I/O interface.
@@ -528,4 +529,21 @@ mig_7series_0 MIG(
 );
 
 `endif // ifdef ENABLE_DDRx_MEMORY
+
+// -----------------------------------------------------------------------------
+// DSA device controller.(data feeder)
+//
+data_feeder Data_feeder
+(
+    .clk_i(clk),
+    .rst_i(rst),
+    .en_i(dev_strobe & dsa_sel),
+    .we_i(dev_we),
+    .addr_i(dev_addr),
+    .data_i(dev_din),
+    .data_o(dsa_dout),
+    .data_ready_o(dsa_ready)
+);
+
+
 endmodule

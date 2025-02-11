@@ -104,6 +104,8 @@ set_property -dict { PACKAGE_PIN F3  IOSTANDARD LVCMOS33 } [get_ports { spi_sck 
 set_property -dict { PACKAGE_PIN D4  IOSTANDARD LVCMOS33 } [get_ports { spi_ss }]; #IO_L16N_T2_35 Sch=ck_ss
 
 
+
+
 ## ChipKit I2C
 
 #set_property -dict { PACKAGE_PIN L18   IOSTANDARD LVCMOS33 } [get_ports { i2c_scl }]; #IO_L4P_T0_D04_14 Sch=ck_scl

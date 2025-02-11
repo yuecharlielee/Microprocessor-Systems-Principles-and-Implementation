@@ -1,0 +1,159 @@
+`timescale 1ns / 1ps
+// =============================================================================
+//  Program : data_feeder.v
+//  Author  : YUE
+//  Date    : Feb/5/2025
+// -----------------------------------------------------------------------------
+//  Description:
+//  This module implements the RISC-V Core DSA data Controller.
+//  It will control the data flow of the DSA with MMIO.
+// =============================================================================
+
+`include "aquila_config.vh"
+
+module data_feeder
+#( parameter XLEN = 32 )
+(
+    input                   clk_i,
+    input                   rst_i,
+
+    input                   en_i,
+    input                   we_i,
+    (* mark_debug = "true" *) input [XLEN-1 : 0]      addr_i,
+    input [XLEN-1 : 0]      data_i,
+    output reg [XLEN-1 : 0] data_o,
+    (* mark_debug = "true" *) output                 data_ready_o
+
+);
+
+integer idx;
+
+
+(* mark_debug = "true" *) reg [XLEN-1:0] fcc_data_a, fcc_data_b, fcc_data_c;
+reg fcc_data_valid;
+reg fcc_need_bias;
+
+(* mark_debug = "true" *) wire fcc_result_valid;
+reg fcc_result_valid_reg, fcc_result_data_reg;
+(* mark_debug = "true" *) wire [XLEN-1:0] fcc_result_data;
+
+reg [XLEN-1 : 0] dsa_mem[0:4];
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        fcc_need_bias <= 1'b0;
+    end
+    else if(we_i) begin
+        if(addr_i == 32'hC4200004) begin
+            fcc_need_bias <= data_i[0];
+        end
+    end
+    else begin
+        fcc_need_bias <= fcc_need_bias;
+    end
+end
+
+
+always @(posedge clk_i) begin
+    if (rst_i) begin
+        fcc_data_a <= 32'b0;
+        fcc_data_b <= 32'b0;
+        fcc_data_c <= 32'b0;
+        fcc_need_bias <= 1'b0;
+    end
+    else if(en_i) begin
+        if(we_i && addr_i == 32'hC420_0000) begin
+            fcc_data_a <= data_i;
+        end
+        else if(we_i && addr_i == 32'hC440_0000) begin
+            fcc_data_b <= data_i;
+            // fcc_data_c <= fcc_result_data_reg;
+            fcc_data_valid <= 1'b1;
+        end
+    end
+    else if(fcc_result_valid) begin
+        fcc_data_valid <= 1'b0;
+    end
+    else begin
+        fcc_data_a <= fcc_data_a;
+        fcc_data_b <= fcc_data_b;
+        fcc_data_c <= fcc_data_c;
+        fcc_data_valid <= fcc_data_valid;
+    end
+end
+
+
+
+
+(* mark_debug = "true" *) reg [3-1:0] S;
+localparam STATE_IDLE = 3'b000, STATE_SET = 3'b001, STATE_COMPUTE = 3'b010, STATE_GET = 3'b100;
+assign data_ready_o = ~(S == STATE_COMPUTE);
+
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        S <= STATE_IDLE;
+    end
+    else if(S == STATE_IDLE) begin
+        if(en_i && we_i && addr_i == 32'hC420_0000) begin
+            S <= STATE_SET;
+        end
+    end
+    else if(S == STATE_SET) begin
+        if(fcc_data_valid) begin
+            S <= STATE_COMPUTE;
+        end
+    end
+    else if(S == STATE_COMPUTE) begin
+        if(fcc_result_valid) begin
+            S <= STATE_IDLE;
+        end
+    end
+    else begin
+        S <= S;
+    end
+end
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        fcc_result_data_reg <= 32'b0;
+    end
+    else if(fcc_result_valid) begin
+        fcc_result_data_reg <= fcc_result_data;
+    end
+    else begin
+        fcc_result_data_reg <= fcc_result_data_reg;
+    end
+end
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        data_o <= 32'b0;
+    end
+    else if(fcc_result_valid) begin
+        data_o <= fcc_result_data;
+    end
+    else begin
+        data_o <= data_o;
+    end
+end
+
+
+floating_point_0 fcc_add(
+    .aclk(clk_i),
+
+    .s_axis_a_tvalid(fcc_data_valid),
+    .s_axis_a_tdata(fcc_data_a),
+
+    .s_axis_b_tvalid(fcc_data_valid),
+    .s_axis_b_tdata(fcc_data_b),
+
+    .s_axis_c_tvalid(fcc_data_valid),
+    .s_axis_c_tdata(fcc_data_c),
+
+    .m_axis_result_tvalid(fcc_result_valid),
+    .m_axis_result_tdata(fcc_result_data)
+);
+
+
+endmodule
