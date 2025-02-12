@@ -1050,32 +1050,476 @@ CSR(
 
 // =============================================================================
 // Lab4 
-`define USE_MUTEX
+// `define USE_MUTEX
 
-reg task1_done, task2_done;
-reg context_switch_latency_flag, semaphore_take_flag, semaphore_give_flag, critical_enter_flag, critical_exit_flag;
-wire finish = task1_done && task2_done;
+// reg task1_done, task2_done;
+// reg context_switch_latency_flag, semaphore_take_flag, semaphore_give_flag, critical_enter_flag, critical_exit_flag;
+// wire finish = task1_done && task2_done;
 
-// (* mark_debug = "true" *) reg [XLEN-1:0] total_cycle;
-// (* mark_debug = "true" *) reg [XLEN-1:0] context_switch_latency_counter, context_switch_times_counter;
-// (* mark_debug = "true" *) reg [XLEN-1:0] semaphore_give_latency_counter, semaphore_take_latency_counter, semaphore_latency_counter;
-// (* mark_debug = "true" *) reg [XLEN-1:0] semaphore_give_times_counter, semaphore_take_times_counter;
-// (* mark_debug = "true" *) reg [XLEN-1:0] critical_latency_counter, critical_enter_latency_counter, critical_exit_latency_counter;
-// (* mark_debug = "true" *) reg [XLEN-1:0] critical_enter_times_counter, critical_exit_times_counter;
+// // (* mark_debug = "true" *) reg [XLEN-1:0] total_cycle;
+// // (* mark_debug = "true" *) reg [XLEN-1:0] context_switch_latency_counter, context_switch_times_counter;
+// // (* mark_debug = "true" *) reg [XLEN-1:0] semaphore_give_latency_counter, semaphore_take_latency_counter, semaphore_latency_counter;
+// // (* mark_debug = "true" *) reg [XLEN-1:0] semaphore_give_times_counter, semaphore_take_times_counter;
+// // (* mark_debug = "true" *) reg [XLEN-1:0] critical_latency_counter, critical_enter_latency_counter, critical_exit_latency_counter;
+// // (* mark_debug = "true" *) reg [XLEN-1:0] critical_enter_times_counter, critical_exit_times_counter;
 
-reg [XLEN-1:0] total_cycle;
-reg [XLEN-1:0] context_switch_latency_counter, context_switch_times_counter;
-reg [XLEN-1:0] semaphore_give_latency_counter, semaphore_take_latency_counter, semaphore_latency_counter;
-reg [XLEN-1:0] semaphore_give_times_counter, semaphore_take_times_counter;
-reg [XLEN-1:0] critical_latency_counter, critical_enter_latency_counter, critical_exit_latency_counter;
-reg [XLEN-1:0] critical_enter_times_counter, critical_exit_times_counter;
+// reg [XLEN-1:0] total_cycle;
+// reg [XLEN-1:0] context_switch_latency_counter, context_switch_times_counter;
+// reg [XLEN-1:0] semaphore_give_latency_counter, semaphore_take_latency_counter, semaphore_latency_counter;
+// reg [XLEN-1:0] semaphore_give_times_counter, semaphore_take_times_counter;
+// reg [XLEN-1:0] critical_latency_counter, critical_enter_latency_counter, critical_exit_latency_counter;
+// reg [XLEN-1:0] critical_enter_times_counter, critical_exit_times_counter;
+
+
+// always @(posedge clk_i) begin
+//     if(rst_i) begin
+//         total_cycle <= 0;
+//     end
+//     else if(!finish)begin
+//         total_cycle <= total_cycle + 1;
+//     end
+//     else begin
+//         total_cycle <= total_cycle;
+//     end
+// end
+
+// always @(posedge clk_i) begin
+//     if(rst_i) begin
+//         context_switch_latency_flag <= 0;
+//         context_switch_times_counter <= 0;
+//     end
+//     else begin
+//         `ifdef USE_MUTEX
+//         //use mutex
+//         //80007300 <freertos_risc_v_trap_handler>:
+//         //80001000~800010e4(vTaskDelete)  <Task2_Handler>: 
+//         //800010e8~80001314(vTaskDelete)  <Task1_Handler>: 
+//         //800074e8: mret
+//         if(pcu_pc == 32'h8000_7300 && !finish) begin
+//             context_switch_latency_flag <= 1;
+//             context_switch_times_counter <= context_switch_times_counter + 1;
+//         end
+//         `else 
+//         //dont use mutex
+//         //80007300 <freertos_risc_v_trap_handler>:
+//         //80001000~800010b8(vTaskDelete)  <Task2_Handler>: 
+//         //800010bc~800012b4(vTaskDelete)  <Task1_Handler>: 
+//         //800074e8: mret
+//         if(pcu_pc == 32'h8000_7300 && !finish) begin
+//             context_switch_latency_flag <= 1;
+//             context_switch_times_counter <= context_switch_times_counter + 1;
+//         end
+//         `endif
+//         else if(pcu_pc == 32'h8000_74e8) begin
+//             context_switch_latency_flag <= 0;
+//             context_switch_times_counter <= context_switch_times_counter;
+//         end
+//         else begin
+//             context_switch_latency_flag <= context_switch_latency_flag;
+//             context_switch_times_counter <= context_switch_times_counter;
+//         end
+//     end
+// end
+
+// always @(posedge clk_i) begin
+//     if(rst_i) begin
+//         task1_done <= 0;
+//     end
+//     `ifdef USE_MUTEX
+//     else if(pcu_pc == 32'h8000_10e4 && !task1_done) begin
+//         task1_done <= 1;
+//     end
+//     `else 
+//     else if(pcu_pc == 32'h8000_10b8 && !task1_done) begin
+//         task1_done <= 1;
+//     end
+//     `endif
+//     else begin
+//         task1_done <= task1_done;
+//     end
+// end
+
+// always @(posedge clk_i) begin
+//     if(rst_i) begin
+//         task2_done <= 0;
+//     end
+//     `ifdef USE_MUTEX
+//     else if(pcu_pc == 32'h8000_1314 && !task2_done) begin
+//         task2_done <= 1;
+//     end
+//     `else 
+//     else if(pcu_pc == 32'h8000_12b4 && !task2_done) begin
+//         task2_done <= 1;
+//     end
+//     `endif
+//     else begin
+//         task2_done <= task2_done;
+//     end
+// end
+
+// always @(posedge clk_i) begin
+//     if (rst_i) begin
+//         context_switch_latency_counter <= 0;
+//     end 
+//     else if(context_switch_latency_flag) begin
+//         context_switch_latency_counter <= context_switch_latency_counter + 1;
+//     end
+//     else begin
+//         context_switch_latency_counter <= context_switch_latency_counter;
+//     end
+// end
+
+// always @(posedge clk_i) begin
+//     if(rst_i) begin
+//         semaphore_take_flag <= 0;
+//         semaphore_take_times_counter <= 0;
+//     end
+//     else begin
+//         //80003270~800033b0 <xQueueSemaphoreTake>:
+//         if(pcu_pc == 32'h8000_3270 && !finish) begin
+//             semaphore_take_flag <= 1;
+//             semaphore_take_times_counter <= semaphore_take_times_counter + 1;
+//         end
+//         else if(pcu_pc == 32'h8000_33b0) begin
+//             semaphore_take_flag <= 0;
+//             semaphore_take_times_counter <= semaphore_take_times_counter;
+//         end
+//         else begin
+//             semaphore_take_flag <= semaphore_take_flag;
+//             semaphore_take_times_counter <= semaphore_take_times_counter;
+//         end
+//     end
+// end
+
+// always @(posedge clk_i) begin
+//     if(rst_i) begin
+//         semaphore_give_flag <= 0;
+//         semaphore_give_times_counter <= 0;
+//     end
+//     else begin
+//         //80002bdc~80002d90 <xQueueGenericSend>:
+//         if(pcu_pc == 32'h8000_2bdc && !finish) begin
+//             semaphore_give_flag <= 1;
+//             semaphore_give_times_counter <= semaphore_give_times_counter + 1;
+//         end
+//         else if(pcu_pc == 32'h8000_2d90) begin
+//             semaphore_give_flag <= 0;
+//             semaphore_give_times_counter <= semaphore_give_times_counter;
+//         end
+//         else begin
+//             semaphore_give_flag <= semaphore_give_flag;
+//             semaphore_give_times_counter <= semaphore_give_times_counter;
+//         end
+//     end
+// end
+
+// always @(posedge clk_i) begin
+//     if(rst_i) begin
+//         semaphore_latency_counter <= 0;
+//         semaphore_give_latency_counter <= 0;
+//         semaphore_take_latency_counter <= 0;
+//     end
+//     else if(semaphore_give_flag) begin
+//         semaphore_give_latency_counter <= semaphore_give_latency_counter + 1;
+//         semaphore_latency_counter <= semaphore_latency_counter + 1;
+//         semaphore_take_latency_counter <= semaphore_take_latency_counter;
+//     end
+//     else if(semaphore_take_flag) begin
+//         semaphore_latency_counter <= semaphore_latency_counter + 1;
+//         semaphore_give_latency_counter <= semaphore_give_latency_counter;
+//         semaphore_take_latency_counter <= semaphore_take_latency_counter + 1;
+//     end
+//     else begin
+//         semaphore_give_latency_counter <= semaphore_give_latency_counter;
+//         semaphore_take_latency_counter <= semaphore_take_latency_counter;
+//         semaphore_latency_counter <= semaphore_latency_counter;
+//     end
+// end
+
+// always @(posedge clk_i) begin
+//     if(rst_i) begin
+//         critical_enter_flag <= 0;
+//         critical_enter_times_counter <= 0;
+//     end
+//     else begin
+//         //80004cbc~80004ce4 <vTaskEnterCritical>:
+//         if(pcu_pc == 32'h8000_4cbc && !finish) begin
+//             critical_enter_flag <= 1;
+//             critical_enter_times_counter <= critical_enter_times_counter + 1;
+//         end
+//         else if(pcu_pc == 32'h8000_4ce4) begin
+//             critical_enter_flag <= 0;
+//             critical_enter_times_counter <= critical_enter_times_counter;
+//         end
+//         else begin
+//             critical_enter_flag <= critical_enter_flag;
+//             critical_enter_times_counter <= critical_enter_times_counter;
+//         end
+//     end
+// end
+
+// always @(posedge clk_i) begin
+//     if(rst_i) begin
+//         critical_exit_flag <= 0;
+//         critical_exit_times_counter <= 0;
+//     end
+//     else begin
+//         //80004ce8~80004d24 <vTaskExitCritical>:
+//         if(pcu_pc == 32'h8000_4ce8 && !finish) begin
+//             critical_exit_flag <= 1;
+//             critical_exit_times_counter <= critical_exit_times_counter + 1;
+//         end
+//         else if(pcu_pc == 32'h8000_4d24) begin
+//             critical_exit_flag <= 0;
+//             critical_exit_times_counter <= critical_exit_times_counter;
+//         end
+//         else begin
+//             critical_exit_flag <= critical_exit_flag;
+//             critical_exit_times_counter <= critical_exit_times_counter;
+//         end
+//     end
+// end
+
+// always @(posedge clk_i) begin
+//     if(rst_i) begin
+//         critical_latency_counter <= 0;
+//         critical_enter_latency_counter <= 0;
+//         critical_exit_latency_counter <= 0;
+//     end
+//     else if(critical_enter_flag) begin
+//         critical_latency_counter <= critical_latency_counter + 1;
+//         critical_enter_latency_counter <= critical_enter_latency_counter + 1;
+//         critical_exit_latency_counter <= critical_exit_latency_counter;
+//     end
+//     else if(critical_exit_flag) begin
+//         critical_latency_counter <= critical_latency_counter + 1;
+//         critical_enter_latency_counter <= critical_enter_latency_counter;
+//         critical_exit_latency_counter <= critical_exit_latency_counter + 1;
+//     end
+//     else begin
+//         critical_latency_counter <= critical_latency_counter;
+//         critical_enter_latency_counter <= critical_enter_latency_counter;
+//         critical_exit_latency_counter <= critical_exit_latency_counter;
+//     end
+// end
+
+
+
+// =============================================================================
+// Lab5
+// `define original
+// `define fcc_with_bias
+// `define fcc_without_bias
+`define basic_cnn
+
+
+(* mark_debug = "true" *) reg [XLEN-1:0] total_cycle, fcc_cycle, cnn_cycle;
+
+reg total_cycle_flag, fcc_cycle_flag, cnn_cycle_flag;
+
+`ifdef original
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        total_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_2d34) begin
+        total_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_352c) begin
+        total_cycle_flag <= 0;
+    end
+    else begin
+        total_cycle_flag <= total_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        fcc_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_1510) begin
+        fcc_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_1728) begin
+        fcc_cycle_flag <= 0;
+    end
+    else begin
+        fcc_cycle_flag <= fcc_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        cnn_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_1fd8) begin
+        cnn_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_21f8) begin
+        cnn_cycle_flag <= 0;
+    end
+    else begin
+        cnn_cycle_flag <= cnn_cycle_flag;
+    end
+end 
+
+`endif
+
+
+`ifdef fcc_without_bias
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        total_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_2cdc) begin
+        total_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_34d4) begin
+        total_cycle_flag <= 0;
+    end
+    else begin
+        total_cycle_flag <= total_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        fcc_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_1510) begin
+        fcc_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_16dc) begin
+        fcc_cycle_flag <= 0;
+    end
+    else begin
+        fcc_cycle_flag <= fcc_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        cnn_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_1f80) begin
+        cnn_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_21a0) begin
+        cnn_cycle_flag <= 0;
+    end
+    else begin
+        cnn_cycle_flag <= cnn_cycle_flag;
+    end
+end 
+
+`endif
+
+`ifdef fcc_with_bias
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        total_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_2ca0) begin
+        total_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_3498) begin
+        total_cycle_flag <= 0;
+    end
+    else begin
+        total_cycle_flag <= total_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        fcc_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_1510) begin
+        fcc_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_16a0) begin
+        fcc_cycle_flag <= 0;
+    end
+    else begin
+        fcc_cycle_flag <= fcc_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        cnn_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_1f44) begin
+        cnn_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_2164) begin
+        cnn_cycle_flag <= 0;
+    end
+    else begin
+        cnn_cycle_flag <= cnn_cycle_flag;
+    end
+end 
+
+`endif
+
+`ifdef basic_cnn
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        total_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_2c3c) begin
+        total_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_3434) begin
+        total_cycle_flag <= 0;
+    end
+    else begin
+        total_cycle_flag <= total_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        fcc_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_1510) begin
+        fcc_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_16a0) begin
+        fcc_cycle_flag <= 0;
+    end
+    else begin
+        fcc_cycle_flag <= fcc_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        cnn_cycle_flag <= 0;
+    end
+    else if(pcu_pc == 32'h8000_1ee0) begin
+        cnn_cycle_flag <= 1;
+    end
+    else if(pcu_pc == 32'h8000_2100) begin
+        cnn_cycle_flag <= 0;
+    end
+    else begin
+        cnn_cycle_flag <= cnn_cycle_flag;
+    end
+end 
+
+`endif
 
 
 always @(posedge clk_i) begin
     if(rst_i) begin
         total_cycle <= 0;
     end
-    else if(!finish)begin
+    else if(total_cycle_flag) begin
         total_cycle <= total_cycle + 1;
     end
     else begin
@@ -1085,223 +1529,26 @@ end
 
 always @(posedge clk_i) begin
     if(rst_i) begin
-        context_switch_latency_flag <= 0;
-        context_switch_times_counter <= 0;
+        fcc_cycle <= 0;
+    end
+    else if(fcc_cycle_flag) begin
+        fcc_cycle <= fcc_cycle + 1;
     end
     else begin
-        `ifdef USE_MUTEX
-        //use mutex
-        //80007300 <freertos_risc_v_trap_handler>:
-        //80001000~800010e4(vTaskDelete)  <Task2_Handler>: 
-        //800010e8~80001314(vTaskDelete)  <Task1_Handler>: 
-        //800074e8: mret
-        if(pcu_pc == 32'h8000_7300 && !finish) begin
-            context_switch_latency_flag <= 1;
-            context_switch_times_counter <= context_switch_times_counter + 1;
-        end
-        `else 
-        //dont use mutex
-        //80007300 <freertos_risc_v_trap_handler>:
-        //80001000~800010b8(vTaskDelete)  <Task2_Handler>: 
-        //800010bc~800012b4(vTaskDelete)  <Task1_Handler>: 
-        //800074e8: mret
-        if(pcu_pc == 32'h8000_7300 && !finish) begin
-            context_switch_latency_flag <= 1;
-            context_switch_times_counter <= context_switch_times_counter + 1;
-        end
-        `endif
-        else if(pcu_pc == 32'h8000_74e8) begin
-            context_switch_latency_flag <= 0;
-            context_switch_times_counter <= context_switch_times_counter;
-        end
-        else begin
-            context_switch_latency_flag <= context_switch_latency_flag;
-            context_switch_times_counter <= context_switch_times_counter;
-        end
+        fcc_cycle <= fcc_cycle;
     end
 end
 
 always @(posedge clk_i) begin
     if(rst_i) begin
-        task1_done <= 0;
+        cnn_cycle <= 0;
     end
-    `ifdef USE_MUTEX
-    else if(pcu_pc == 32'h8000_10e4 && !task1_done) begin
-        task1_done <= 1;
-    end
-    `else 
-    else if(pcu_pc == 32'h8000_10b8 && !task1_done) begin
-        task1_done <= 1;
-    end
-    `endif
-    else begin
-        task1_done <= task1_done;
-    end
-end
-
-always @(posedge clk_i) begin
-    if(rst_i) begin
-        task2_done <= 0;
-    end
-    `ifdef USE_MUTEX
-    else if(pcu_pc == 32'h8000_1314 && !task2_done) begin
-        task2_done <= 1;
-    end
-    `else 
-    else if(pcu_pc == 32'h8000_12b4 && !task2_done) begin
-        task2_done <= 1;
-    end
-    `endif
-    else begin
-        task2_done <= task2_done;
-    end
-end
-
-always @(posedge clk_i) begin
-    if (rst_i) begin
-        context_switch_latency_counter <= 0;
-    end 
-    else if(context_switch_latency_flag) begin
-        context_switch_latency_counter <= context_switch_latency_counter + 1;
+    else if(cnn_cycle_flag) begin
+        cnn_cycle <= cnn_cycle + 1;
     end
     else begin
-        context_switch_latency_counter <= context_switch_latency_counter;
+        cnn_cycle <= cnn_cycle;
     end
 end
-
-always @(posedge clk_i) begin
-    if(rst_i) begin
-        semaphore_take_flag <= 0;
-        semaphore_take_times_counter <= 0;
-    end
-    else begin
-        //80003270~800033b0 <xQueueSemaphoreTake>:
-        if(pcu_pc == 32'h8000_3270 && !finish) begin
-            semaphore_take_flag <= 1;
-            semaphore_take_times_counter <= semaphore_take_times_counter + 1;
-        end
-        else if(pcu_pc == 32'h8000_33b0) begin
-            semaphore_take_flag <= 0;
-            semaphore_take_times_counter <= semaphore_take_times_counter;
-        end
-        else begin
-            semaphore_take_flag <= semaphore_take_flag;
-            semaphore_take_times_counter <= semaphore_take_times_counter;
-        end
-    end
-end
-
-always @(posedge clk_i) begin
-    if(rst_i) begin
-        semaphore_give_flag <= 0;
-        semaphore_give_times_counter <= 0;
-    end
-    else begin
-        //80002bdc~80002d90 <xQueueGenericSend>:
-        if(pcu_pc == 32'h8000_2bdc && !finish) begin
-            semaphore_give_flag <= 1;
-            semaphore_give_times_counter <= semaphore_give_times_counter + 1;
-        end
-        else if(pcu_pc == 32'h8000_2d90) begin
-            semaphore_give_flag <= 0;
-            semaphore_give_times_counter <= semaphore_give_times_counter;
-        end
-        else begin
-            semaphore_give_flag <= semaphore_give_flag;
-            semaphore_give_times_counter <= semaphore_give_times_counter;
-        end
-    end
-end
-
-always @(posedge clk_i) begin
-    if(rst_i) begin
-        semaphore_latency_counter <= 0;
-        semaphore_give_latency_counter <= 0;
-        semaphore_take_latency_counter <= 0;
-    end
-    else if(semaphore_give_flag) begin
-        semaphore_give_latency_counter <= semaphore_give_latency_counter + 1;
-        semaphore_latency_counter <= semaphore_latency_counter + 1;
-        semaphore_take_latency_counter <= semaphore_take_latency_counter;
-    end
-    else if(semaphore_take_flag) begin
-        semaphore_latency_counter <= semaphore_latency_counter + 1;
-        semaphore_give_latency_counter <= semaphore_give_latency_counter;
-        semaphore_take_latency_counter <= semaphore_take_latency_counter + 1;
-    end
-    else begin
-        semaphore_give_latency_counter <= semaphore_give_latency_counter;
-        semaphore_take_latency_counter <= semaphore_take_latency_counter;
-        semaphore_latency_counter <= semaphore_latency_counter;
-    end
-end
-
-always @(posedge clk_i) begin
-    if(rst_i) begin
-        critical_enter_flag <= 0;
-        critical_enter_times_counter <= 0;
-    end
-    else begin
-        //80004cbc~80004ce4 <vTaskEnterCritical>:
-        if(pcu_pc == 32'h8000_4cbc && !finish) begin
-            critical_enter_flag <= 1;
-            critical_enter_times_counter <= critical_enter_times_counter + 1;
-        end
-        else if(pcu_pc == 32'h8000_4ce4) begin
-            critical_enter_flag <= 0;
-            critical_enter_times_counter <= critical_enter_times_counter;
-        end
-        else begin
-            critical_enter_flag <= critical_enter_flag;
-            critical_enter_times_counter <= critical_enter_times_counter;
-        end
-    end
-end
-
-always @(posedge clk_i) begin
-    if(rst_i) begin
-        critical_exit_flag <= 0;
-        critical_exit_times_counter <= 0;
-    end
-    else begin
-        //80004ce8~80004d24 <vTaskExitCritical>:
-        if(pcu_pc == 32'h8000_4ce8 && !finish) begin
-            critical_exit_flag <= 1;
-            critical_exit_times_counter <= critical_exit_times_counter + 1;
-        end
-        else if(pcu_pc == 32'h8000_4d24) begin
-            critical_exit_flag <= 0;
-            critical_exit_times_counter <= critical_exit_times_counter;
-        end
-        else begin
-            critical_exit_flag <= critical_exit_flag;
-            critical_exit_times_counter <= critical_exit_times_counter;
-        end
-    end
-end
-
-always @(posedge clk_i) begin
-    if(rst_i) begin
-        critical_latency_counter <= 0;
-        critical_enter_latency_counter <= 0;
-        critical_exit_latency_counter <= 0;
-    end
-    else if(critical_enter_flag) begin
-        critical_latency_counter <= critical_latency_counter + 1;
-        critical_enter_latency_counter <= critical_enter_latency_counter + 1;
-        critical_exit_latency_counter <= critical_exit_latency_counter;
-    end
-    else if(critical_exit_flag) begin
-        critical_latency_counter <= critical_latency_counter + 1;
-        critical_enter_latency_counter <= critical_enter_latency_counter;
-        critical_exit_latency_counter <= critical_exit_latency_counter + 1;
-    end
-    else begin
-        critical_latency_counter <= critical_latency_counter;
-        critical_enter_latency_counter <= critical_enter_latency_counter;
-        critical_exit_latency_counter <= critical_exit_latency_counter;
-    end
-end
-
 
 endmodule

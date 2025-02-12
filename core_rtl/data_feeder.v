@@ -31,28 +31,30 @@ integer idx;
 
 (* mark_debug = "true" *) reg [XLEN-1:0] fcc_data_a, fcc_data_b, fcc_data_c;
 reg fcc_data_valid;
-reg fcc_need_bias;
+(* mark_debug = "true" *) reg fcc_need_bias;
+reg [XLEN-1:0] fcc_bias;
 
-(* mark_debug = "true" *) wire fcc_result_valid;
-reg fcc_result_valid_reg, fcc_result_data_reg;
-(* mark_debug = "true" *) wire [XLEN-1:0] fcc_result_data;
+(* mark_debug = "true" *) wire fcc_result_valid, fcc_result_with_b_valid;
+(* mark_debug = "true" *) reg [XLEN-1:0] fcc_result_data_reg, fcc_result_with_b_data_reg;
+(* mark_debug = "true" *) wire [XLEN-1:0] fcc_result_data, fcc_result_with_b_data;
 
 reg [XLEN-1 : 0] dsa_mem[0:4];
 
+
+
 always @(posedge clk_i) begin
     if(rst_i) begin
-        fcc_need_bias <= 1'b0;
+        fcc_bias <= 32'b0;
     end
-    else if(we_i) begin
-        if(addr_i == 32'hC4200004) begin
-            fcc_need_bias <= data_i[0];
+    else if(en_i) begin
+        if(we_i && addr_i == 32'hC4200008) begin
+            fcc_bias <= data_i;
         end
     end
     else begin
-        fcc_need_bias <= fcc_need_bias;
+        fcc_bias <= fcc_bias;
     end
 end
-
 
 always @(posedge clk_i) begin
     if (rst_i) begin
@@ -65,10 +67,13 @@ always @(posedge clk_i) begin
         if(we_i && addr_i == 32'hC420_0000) begin
             fcc_data_a <= data_i;
         end
-        else if(we_i && addr_i == 32'hC440_0000) begin
+        else if(we_i && addr_i == 32'hC422_0000) begin
             fcc_data_b <= data_i;
-            // fcc_data_c <= fcc_result_data_reg;
+            fcc_data_c <= fcc_result_data_reg;
             fcc_data_valid <= 1'b1;
+        end
+        else if(we_i && addr_i == 32'hC4200004) begin
+            fcc_need_bias <= data_i[0];
         end
     end
     else if(fcc_result_valid) begin
@@ -79,6 +84,7 @@ always @(posedge clk_i) begin
         fcc_data_b <= fcc_data_b;
         fcc_data_c <= fcc_data_c;
         fcc_data_valid <= fcc_data_valid;
+        fcc_need_bias <= fcc_need_bias;
     end
 end
 
@@ -116,30 +122,43 @@ end
 
 always @(posedge clk_i) begin
     if(rst_i) begin
-        fcc_result_data_reg <= 32'b0;
+        fcc_result_with_b_data_reg <= 32'b0;
     end
-    else if(fcc_result_valid) begin
-        fcc_result_data_reg <= fcc_result_data;
+    else if(fcc_result_with_b_valid) begin
+        fcc_result_with_b_data_reg <= fcc_result_with_b_data;
     end
     else begin
-        fcc_result_data_reg <= fcc_result_data_reg;
+        fcc_result_with_b_data_reg <= fcc_result_with_b_data_reg;
     end
 end
 
 always @(posedge clk_i) begin
     if(rst_i) begin
+        fcc_result_data_reg <= 32'b0;
         data_o <= 32'b0;
     end
-    else if(fcc_result_valid) begin
-        data_o <= fcc_result_data;
+    else if(S == STATE_COMPUTE && fcc_result_valid) begin
+        fcc_result_data_reg <= fcc_result_data;
+        data_o <= 32'b0;
+    end
+    else if(addr_i == 32'hC424_0000) begin
+        fcc_result_data_reg <= 32'b0;
+        if(fcc_need_bias) begin
+            data_o <= fcc_result_with_b_data_reg;
+        end
+        else begin
+            data_o <= fcc_result_data_reg;
+        end
     end
     else begin
+        fcc_result_data_reg <= fcc_result_data_reg;
         data_o <= data_o;
     end
 end
 
 
-floating_point_0 fcc_add(
+
+floating_point_fuse fcc_mul(
     .aclk(clk_i),
 
     .s_axis_a_tvalid(fcc_data_valid),
@@ -153,6 +172,19 @@ floating_point_0 fcc_add(
 
     .m_axis_result_tvalid(fcc_result_valid),
     .m_axis_result_tdata(fcc_result_data)
+);
+
+floating_point_add fcc_add(
+    .aclk(clk_i),
+
+    .s_axis_a_tvalid(fcc_result_valid),
+    .s_axis_a_tdata(fcc_result_data_reg),
+
+    .s_axis_b_tvalid(fcc_result_valid),
+    .s_axis_b_tdata(fcc_bias),
+
+    .m_axis_result_tvalid(fcc_result_with_b_valid),
+    .m_axis_result_tdata(fcc_result_with_b_data)
 );
 
 

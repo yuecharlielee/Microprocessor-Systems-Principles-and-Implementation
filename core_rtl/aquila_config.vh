@@ -98,6 +98,9 @@
 // `define LRU
 // `define RANDOM
 
+// DSA 
+// `define original
+// `define fcc_without_memcpy
 
 // Branch Prediction
 `define ENABLE_BRANCH_PREDICTION
