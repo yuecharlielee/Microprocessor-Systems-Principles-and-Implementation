@@ -37,6 +37,7 @@ reg [XLEN-1:0] fcc_bias;
 (* mark_debug = "true" *) wire fcc_result_valid, fcc_result_with_b_valid;
 (* mark_debug = "true" *) reg [XLEN-1:0] fcc_result_data_reg, fcc_result_with_b_data_reg;
 (* mark_debug = "true" *) wire [XLEN-1:0] fcc_result_data, fcc_result_with_b_data;
+(* mark_debug = "true" *) reg [XLEN-1:0] type_reg;
 
 reg [XLEN-1 : 0] dsa_mem[0:4];
 
@@ -53,6 +54,18 @@ always @(posedge clk_i) begin
     end
     else begin
         fcc_bias <= fcc_bias;
+    end
+end
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        type_reg <= 32'b0;
+    end
+    else if(en_i && we_i && addr_i == 32'hC420_000A) begin
+        type_reg <= data_i;
+    end
+    else begin
+        type_reg <= type_reg;
     end
 end
 
