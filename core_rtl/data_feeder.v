@@ -39,10 +39,16 @@ reg [XLEN-1:0] fcc_bias;
 (* mark_debug = "true" *) wire [XLEN-1:0] fcc_result_data, fcc_result_with_b_data;
 (* mark_debug = "true" *) reg [XLEN-1:0] type_reg;
 
+(* mark_debug = "true" *) reg [XLEN-1:0] avg_data;
+(* mark_debug = "true" *) reg avg_data_valid;
+(* mark_debug = "true" *) wire avg_result_valid;
+(* mark_debug = "true" *) reg [XLEN-1:0] avg_result_data_reg;
+(* mark_debug = "true" *) wire [XLEN-1:0] avg_result_data;
+
 reg [XLEN-1 : 0] dsa_mem[0:4];
 
 
-
+// for fcc and cnn
 always @(posedge clk_i) begin
     if(rst_i) begin
         fcc_bias <= 32'b0;
@@ -85,7 +91,7 @@ always @(posedge clk_i) begin
             fcc_data_c <= fcc_result_data_reg;
             fcc_data_valid <= 1'b1;
         end
-        else if(we_i && addr_i == 32'hC4200004) begin
+        else if(we_i && addr_i == 32'hC420_0004) begin
             fcc_need_bias <= data_i[0];
         end
     end
@@ -102,6 +108,31 @@ always @(posedge clk_i) begin
 end
 
 
+// for average pooling
+always @(posedge clk_i) begin
+    if (rst_i) begin
+
+    end
+    else if(en_i) begin
+        if(we_i && addr_i == 32'hC440_0000) begin
+            avg_data <= data_i;
+            avg_data_valid <= 1'b1;
+        end
+        else if(we_i && addr_i == 32'hC444_0000) begin
+            avg_data <= 32'b0;
+            avg_data_valid <= 1'b0;
+        end
+    end
+    else if(avg_result_valid) begin
+        avg_data_valid <= 1'b0;
+    end
+    else begin
+        avg_data_valid <= avg_data_valid;
+        avg_data <= avg_data;
+    end
+end
+
+
 
 
 (* mark_debug = "true" *) reg [3-1:0] S;
@@ -114,8 +145,13 @@ always @(posedge clk_i) begin
         S <= STATE_IDLE;
     end
     else if(S == STATE_IDLE) begin
-        if(en_i && we_i && addr_i == 32'hC420_0000) begin
-            S <= STATE_SET;
+        if(en_i && we_i) begin
+            if(addr_i == 32'hC420_0000) begin
+                S <= STATE_SET;
+            end
+            else if(addr_i == 32'hC440_0000) begin
+                S <= STATE_COMPUTE;
+            end
         end
     end
     else if(S == STATE_SET) begin
@@ -124,7 +160,7 @@ always @(posedge clk_i) begin
         end
     end
     else if(S == STATE_COMPUTE) begin
-        if(fcc_result_valid) begin
+        if(fcc_result_valid || avg_result_valid) begin
             S <= STATE_IDLE;
         end
     end
@@ -145,14 +181,23 @@ always @(posedge clk_i) begin
     end
 end
 
+
+
 always @(posedge clk_i) begin
     if(rst_i) begin
         fcc_result_data_reg <= 32'b0;
+        avg_result_data_reg <= 32'b0;
         data_o <= 32'b0;
     end
-    else if(S == STATE_COMPUTE && fcc_result_valid) begin
-        fcc_result_data_reg <= fcc_result_data;
+    else if(S == STATE_COMPUTE) begin
         data_o <= 32'b0;
+        if(fcc_result_valid) begin
+            fcc_result_data_reg <= fcc_result_data;
+        end
+        
+        if(avg_result_valid) begin
+            avg_result_data_reg <= avg_result_data;
+        end
     end
     else if(addr_i == 32'hC424_0000) begin
         fcc_result_data_reg <= 32'b0;
@@ -162,6 +207,10 @@ always @(posedge clk_i) begin
         else begin
             data_o <= fcc_result_data_reg;
         end
+    end
+    else if(addr_i == 32'hC444_0000) begin
+        data_o <= avg_result_data_reg;
+        avg_result_data_reg <= 32'b0;
     end
     else begin
         fcc_result_data_reg <= fcc_result_data_reg;
@@ -198,6 +247,19 @@ floating_point_add fcc_add(
 
     .m_axis_result_tvalid(fcc_result_with_b_valid),
     .m_axis_result_tdata(fcc_result_with_b_data)
+);
+
+floating_point_add avg_add(
+    .aclk(clk_i),
+
+    .s_axis_a_tvalid(avg_data_valid),
+    .s_axis_a_tdata(avg_result_data_reg),
+
+    .s_axis_b_tvalid(avg_data_valid),
+    .s_axis_b_tdata(avg_data),
+
+    .m_axis_result_tvalid(avg_result_valid),
+    .m_axis_result_tdata(avg_result_data)
 );
 
 

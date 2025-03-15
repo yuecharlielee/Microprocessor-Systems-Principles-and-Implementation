@@ -281,7 +281,7 @@ wire [ 1 : 0]     wbk2csr_sys_jump_csr_addr;
 wire              wbk2csr_xcpt_valid;
 wire [ 3 : 0]     wbk2csr_xcpt_cause;
 wire [XLEN-1 : 0] wbk2csr_xcpt_tval;
-wire [XLEN-1 : 0] wbk2csr_pc;
+(* mark_debug = "true" *) wire [XLEN-1 : 0] wbk2csr_pc;
 
 // ---------------------------------
 //  Output signals from other units
@@ -1307,15 +1307,17 @@ CSR(
 
 // =============================================================================
 // Lab5
-// `define original
+//`define original
 // `define fcc_with_bias
 // `define fcc_without_bias
-`define basic_cnn
+// `define basic_cnn
+`define basic_avg_pooling
+// `define basic_avg_pooling_with_add_ip
 
 
-(* mark_debug = "true" *) reg [XLEN-1:0] total_cycle, fcc_cycle, cnn_cycle;
+(* mark_debug = "true" *) reg [XLEN-1:0] total_cycle, fcc_cycle, cnn_cycle, avg_pooling_cycle;
 
-reg total_cycle_flag, fcc_cycle_flag, cnn_cycle_flag;
+(* mark_debug = "true" *) reg total_cycle_flag, fcc_cycle_flag, cnn_cycle_flag, avg_pooling_cycle_flag;
 
 `ifdef original
 
@@ -1323,10 +1325,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         total_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_2d34) begin
+    else if(wbk2csr_pc == 32'h8000_2d20) begin
         total_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_352c) begin
+    else if(wbk2csr_pc == 32'h8000_3518) begin
         total_cycle_flag <= 0;
     end
     else begin
@@ -1338,10 +1340,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         fcc_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_1510) begin
+    else if(wbk2csr_pc == 32'h8000_1510) begin
         fcc_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_1728) begin
+    else if(wbk2csr_pc == 32'h8000_1720) begin
         fcc_cycle_flag <= 0;
     end
     else begin
@@ -1353,16 +1355,31 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         cnn_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_1fd8) begin
+    else if(wbk2csr_pc == 32'h8000_1fc4) begin
         cnn_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_21f8) begin
+    else if(wbk2csr_pc == 32'h8000_21e4) begin
         cnn_cycle_flag <= 0;
     end
     else begin
         cnn_cycle_flag <= cnn_cycle_flag;
     end
 end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        avg_pooling_cycle_flag <= 0;
+    end
+    else if(wbk2csr_pc == 32'h8000_108c) begin
+        avg_pooling_cycle_flag <= 1;
+    end
+    else if(wbk2csr_pc == 32'h8000_14ac) begin
+        avg_pooling_cycle_flag <= 0;
+    end
+    else begin
+        avg_pooling_cycle_flag <= avg_pooling_cycle_flag;
+    end
+end
 
 `endif
 
@@ -1373,10 +1390,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         total_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_2cdc) begin
+    else if(wbk2csr_pc == 32'h8000_2cdc) begin
         total_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_34d4) begin
+    else if(wbk2csr_pc == 32'h8000_34d4) begin
         total_cycle_flag <= 0;
     end
     else begin
@@ -1388,10 +1405,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         fcc_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_1510) begin
+    else if(wbk2csr_pc == 32'h8000_1510) begin
         fcc_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_16dc) begin
+    else if(wbk2csr_pc == 32'h8000_16dc) begin
         fcc_cycle_flag <= 0;
     end
     else begin
@@ -1403,10 +1420,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         cnn_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_1f80) begin
+    else if(wbk2csr_pc == 32'h8000_1f80) begin
         cnn_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_21a0) begin
+    else if(wbk2csr_pc == 32'h8000_21a0) begin
         cnn_cycle_flag <= 0;
     end
     else begin
@@ -1422,10 +1439,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         total_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_2ca0) begin
+    else if(wbk2csr_pc == 32'h8000_2ca0) begin
         total_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_3498) begin
+    else if(wbk2csr_pc == 32'h8000_3498) begin
         total_cycle_flag <= 0;
     end
     else begin
@@ -1437,10 +1454,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         fcc_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_1510) begin
+    else if(wbk2csr_pc == 32'h8000_1510) begin
         fcc_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_16a0) begin
+    else if(wbk2csr_pc == 32'h8000_16a0) begin
         fcc_cycle_flag <= 0;
     end
     else begin
@@ -1452,10 +1469,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         cnn_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_1f44) begin
+    else if(wbk2csr_pc == 32'h8000_1f44) begin
         cnn_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_2164) begin
+    else if(wbk2csr_pc == 32'h8000_2164) begin
         cnn_cycle_flag <= 0;
     end
     else begin
@@ -1471,10 +1488,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         total_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_2c3c) begin
+    else if(wbk2csr_pc == 32'h8000_2c3c) begin
         total_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_3434) begin
+    else if(wbk2csr_pc == 32'h8000_3434) begin
         total_cycle_flag <= 0;
     end
     else begin
@@ -1486,10 +1503,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         fcc_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_1510) begin
+    else if(wbk2csr_pc == 32'h8000_1510) begin
         fcc_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_16a0) begin
+    else if(wbk2csr_pc == 32'h8000_16a0) begin
         fcc_cycle_flag <= 0;
     end
     else begin
@@ -1501,10 +1518,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         cnn_cycle_flag <= 0;
     end
-    else if(pcu_pc == 32'h8000_1ee0) begin
+    else if(wbk2csr_pc == 32'h8000_1ee0) begin
         cnn_cycle_flag <= 1;
     end
-    else if(pcu_pc == 32'h8000_2100) begin
+    else if(wbk2csr_pc == 32'h8000_2100) begin
         cnn_cycle_flag <= 0;
     end
     else begin
@@ -1512,7 +1529,153 @@ always @(posedge clk_i) begin
     end
 end 
 
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        avg_pooling_cycle_flag <= 0;
+    end
+    else if(wbk2csr_pc == 32'h8000_108c) begin
+        avg_pooling_cycle_flag <= 1;
+    end
+    else if(wbk2csr_pc == 32'h8000_14ac || wbk2csr_pc == 32'h8000_2ffc || cnn_cycle_flag) begin
+        avg_pooling_cycle_flag <= 0;
+    end
+    else begin
+        avg_pooling_cycle_flag <= avg_pooling_cycle_flag;
+    end
+end
+
 `endif
+
+`ifdef basic_avg_pooling
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        total_cycle_flag <= 0;
+    end
+    else if(wbk2csr_pc == 32'h8000_2c34) begin
+        total_cycle_flag <= 1;
+    end
+    else if(wbk2csr_pc == 32'h8000_342c) begin
+        total_cycle_flag <= 0;
+    end
+    else begin
+        total_cycle_flag <= total_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        fcc_cycle_flag <= 0;
+    end
+    else if(wbk2csr_pc == 32'h8000_1514) begin
+        fcc_cycle_flag <= 1;
+    end
+    else if(wbk2csr_pc == 32'h8000_16a4) begin
+        fcc_cycle_flag <= 0;
+    end
+    else begin
+        fcc_cycle_flag <= fcc_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        cnn_cycle_flag <= 0;
+    end
+    else if(wbk2csr_pc == 32'h8000_1ed8) begin
+        cnn_cycle_flag <= 1;
+    end
+    else if(wbk2csr_pc == 32'h8000_20f8) begin
+        cnn_cycle_flag <= 0;
+    end
+    else begin
+        cnn_cycle_flag <= cnn_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        avg_pooling_cycle_flag <= 0;
+    end
+    else if(wbk2csr_pc == 32'h8000_108c) begin
+        avg_pooling_cycle_flag <= 1;    
+    end
+    else if(wbk2csr_pc == 32'h8000_14f8 || cnn_cycle_flag || wbk2csr_pc == 32'h8000_2ff4) begin
+        avg_pooling_cycle_flag <= 0;
+    end
+    else begin
+        avg_pooling_cycle_flag <= avg_pooling_cycle_flag;
+    end
+end
+
+`endif
+
+`ifdef basic_avg_pooling_with_add_ip
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        total_cycle_flag <= 0;
+    end
+    else if(wbk2csr_pc == 32'h8000_2c10) begin
+        total_cycle_flag <= 1;
+    end
+    else if(wbk2csr_pc == 32'h8000_3408) begin
+        total_cycle_flag <= 0;
+    end
+    else begin
+        total_cycle_flag <= total_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        fcc_cycle_flag <= 0;
+    end
+    else if(wbk2csr_pc == 32'h8000_14f0) begin
+        fcc_cycle_flag <= 1;
+    end
+    else if(wbk2csr_pc == 32'h8000_1680) begin
+        fcc_cycle_flag <= 0;
+    end
+    else begin
+        fcc_cycle_flag <= fcc_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        cnn_cycle_flag <= 0;
+    end
+    else if(wbk2csr_pc == 32'h8000_1eb4) begin
+        cnn_cycle_flag <= 1;
+    end
+    else if(wbk2csr_pc == 32'h8000_20d4) begin
+        cnn_cycle_flag <= 0;
+    end
+    else begin
+        cnn_cycle_flag <= cnn_cycle_flag;
+    end
+end 
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        avg_pooling_cycle_flag <= 0;
+    end
+    else if(wbk2csr_pc == 32'h8000_108c) begin
+        avg_pooling_cycle_flag <= 1;    
+    end
+    else if(wbk2csr_pc == 32'h8000_14d4 || wbk2csr_pc == 32'h8000_2fd0) begin
+        avg_pooling_cycle_flag <= 0;
+    end
+    else begin
+        avg_pooling_cycle_flag <= avg_pooling_cycle_flag;
+    end
+end
+
+`endif
+
+
+
 
 
 always @(posedge clk_i) begin
@@ -1550,5 +1713,18 @@ always @(posedge clk_i) begin
         cnn_cycle <= cnn_cycle;
     end
 end
+
+always @(posedge clk_i) begin
+    if(rst_i) begin
+        avg_pooling_cycle <= 0;
+    end
+    else if(avg_pooling_cycle_flag) begin
+        avg_pooling_cycle <= avg_pooling_cycle + 1;
+    end
+    else begin
+        avg_pooling_cycle <= avg_pooling_cycle;
+    end
+end
+
 
 endmodule
