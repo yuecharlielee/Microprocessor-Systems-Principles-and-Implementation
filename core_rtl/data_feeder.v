@@ -109,28 +109,29 @@ end
 
 
 // for average pooling
-always @(posedge clk_i) begin
-    if (rst_i) begin
-
-    end
-    else if(en_i) begin
-        if(we_i && addr_i == 32'hC440_0000) begin
-            avg_data <= data_i;
-            avg_data_valid <= 1'b1;
-        end
-        else if(we_i && addr_i == 32'hC444_0000) begin
-            avg_data <= 32'b0;
-            avg_data_valid <= 1'b0;
-        end
-    end
-    else if(avg_result_valid) begin
-        avg_data_valid <= 1'b0;
-    end
-    else begin
-        avg_data_valid <= avg_data_valid;
-        avg_data <= avg_data;
-    end
-end
+// always @(posedge clk_i) begin
+//     if (rst_i) begin
+//         avg_data <= 32'b0;
+//         avg_data_valid <= 1'b0;
+//     end
+//     else if(en_i) begin
+//         if(we_i && addr_i == 32'hC440_0000) begin
+//             avg_data <= data_i;
+//             avg_data_valid <= 1'b1;
+//         end
+//         else if(we_i && addr_i == 32'hC444_0000) begin
+//             avg_data <= 32'b0;
+//             avg_data_valid <= 1'b0;
+//         end
+//     end
+//     else if(avg_result_valid) begin
+//         avg_data_valid <= 1'b0;
+//     end
+//     else begin
+//         avg_data_valid <= avg_data_valid;
+//         avg_data <= avg_data;
+//     end
+// end
 
 
 
@@ -149,9 +150,6 @@ always @(posedge clk_i) begin
             if(addr_i == 32'hC420_0000) begin
                 S <= STATE_SET;
             end
-            else if(addr_i == 32'hC440_0000) begin
-                S <= STATE_COMPUTE;
-            end
         end
     end
     else if(S == STATE_SET) begin
@@ -160,7 +158,7 @@ always @(posedge clk_i) begin
         end
     end
     else if(S == STATE_COMPUTE) begin
-        if(fcc_result_valid || avg_result_valid) begin
+        if(fcc_result_valid) begin
             S <= STATE_IDLE;
         end
     end
@@ -208,10 +206,6 @@ always @(posedge clk_i) begin
             data_o <= fcc_result_data_reg;
         end
     end
-    else if(addr_i == 32'hC444_0000) begin
-        data_o <= avg_result_data_reg;
-        avg_result_data_reg <= 32'b0;
-    end
     else begin
         fcc_result_data_reg <= fcc_result_data_reg;
         data_o <= data_o;
@@ -249,18 +243,18 @@ floating_point_add fcc_add(
     .m_axis_result_tdata(fcc_result_with_b_data)
 );
 
-floating_point_add avg_add(
-    .aclk(clk_i),
+// floating_point_add avg_add(
+//     .aclk(clk_i),
 
-    .s_axis_a_tvalid(avg_data_valid),
-    .s_axis_a_tdata(avg_result_data_reg),
+//     .s_axis_a_tvalid(avg_data_valid),
+//     .s_axis_a_tdata(avg_result_data_reg),
 
-    .s_axis_b_tvalid(avg_data_valid),
-    .s_axis_b_tdata(avg_data),
+//     .s_axis_b_tvalid(avg_data_valid),
+//     .s_axis_b_tdata(avg_data),
 
-    .m_axis_result_tvalid(avg_result_valid),
-    .m_axis_result_tdata(avg_result_data)
-);
+//     .m_axis_result_tvalid(avg_result_valid),
+//     .m_axis_result_tdata(avg_result_data)
+// );
 
 
 endmodule
