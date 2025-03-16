@@ -107,35 +107,6 @@ always @(posedge clk_i) begin
     end
 end
 
-
-// for average pooling
-// always @(posedge clk_i) begin
-//     if (rst_i) begin
-//         avg_data <= 32'b0;
-//         avg_data_valid <= 1'b0;
-//     end
-//     else if(en_i) begin
-//         if(we_i && addr_i == 32'hC440_0000) begin
-//             avg_data <= data_i;
-//             avg_data_valid <= 1'b1;
-//         end
-//         else if(we_i && addr_i == 32'hC444_0000) begin
-//             avg_data <= 32'b0;
-//             avg_data_valid <= 1'b0;
-//         end
-//     end
-//     else if(avg_result_valid) begin
-//         avg_data_valid <= 1'b0;
-//     end
-//     else begin
-//         avg_data_valid <= avg_data_valid;
-//         avg_data <= avg_data;
-//     end
-// end
-
-
-
-
 (* mark_debug = "true" *) reg [3-1:0] S;
 localparam STATE_IDLE = 3'b000, STATE_SET = 3'b001, STATE_COMPUTE = 3'b010, STATE_GET = 3'b100;
 assign data_ready_o = ~(S == STATE_COMPUTE);
@@ -243,18 +214,6 @@ floating_point_add fcc_add(
     .m_axis_result_tdata(fcc_result_with_b_data)
 );
 
-// floating_point_add avg_add(
-//     .aclk(clk_i),
-
-//     .s_axis_a_tvalid(avg_data_valid),
-//     .s_axis_a_tdata(avg_result_data_reg),
-
-//     .s_axis_b_tvalid(avg_data_valid),
-//     .s_axis_b_tdata(avg_data),
-
-//     .m_axis_result_tvalid(avg_result_valid),
-//     .m_axis_result_tdata(avg_result_data)
-// );
 
 
 endmodule

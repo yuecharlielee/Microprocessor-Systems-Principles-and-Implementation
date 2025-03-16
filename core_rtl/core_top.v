@@ -1316,16 +1316,28 @@ CSR(
 
 (* mark_debug = "true" *) reg total_cycle_flag, fcc_cycle_flag, cnn_cycle_flag, avg_pooling_cycle_flag;
 
+(* mark_debug = "true" *) wire cnn_main_flag, fcc_main_flag, avg_main_flag;
+
+(* mark_debug = "true" *) wire cnn_avg_flag, fcc_avg_flag, cnn_fcc_flag;
+
+assign cnn_avg_flag = cnn_cycle_flag && avg_pooling_cycle_flag;
+assign fcc_avg_flag = fcc_cycle_flag && avg_pooling_cycle_flag;
+assign cnn_fcc_flag = cnn_cycle_flag && fcc_cycle_flag;
+
+assign cnn_main_flag = cnn_cycle_flag && !total_cycle;
+assign fcc_main_flag = fcc_cycle_flag && !total_cycle;
+assign avg_main_flag = avg_pooling_cycle_flag && !total_cycle;
+
 `ifdef original 
 
 always @(posedge clk_i) begin
     if(rst_i) begin
         total_cycle_flag <= 0;
     end
-    else if(wbk2csr_pc == 32'h8000_2d20) begin
+    else if(wbk2csr_pc == 32'h8000_2ca0) begin
         total_cycle_flag <= 1;
     end
-    else if(wbk2csr_pc == 32'h8000_3518) begin
+    else if(wbk2csr_pc == 32'h8000_3498) begin
         total_cycle_flag <= 0;
     end
     else begin
@@ -1340,7 +1352,7 @@ always @(posedge clk_i) begin
     else if(wbk2csr_pc == 32'h8000_1510) begin
         fcc_cycle_flag <= 1;
     end
-    else if(wbk2csr_pc == 32'h8000_1720) begin
+    else if(wbk2csr_pc == 32'h8000_16a0) begin
         fcc_cycle_flag <= 0;
     end
     else begin
@@ -1352,10 +1364,10 @@ always @(posedge clk_i) begin
     if(rst_i) begin
         cnn_cycle_flag <= 0;
     end
-    else if(wbk2csr_pc == 32'h8000_1fc4) begin
+    else if(wbk2csr_pc == 32'h8000_1b9c) begin
         cnn_cycle_flag <= 1;
     end
-    else if(wbk2csr_pc == 32'h8000_21e4) begin
+    else if(wbk2csr_pc == 32'h8000_1ee0) begin
         cnn_cycle_flag <= 0;
     end
     else begin
@@ -1370,7 +1382,7 @@ always @(posedge clk_i) begin
     else if(wbk2csr_pc == 32'h8000_1090) begin
         avg_pooling_cycle_flag <= 1;
     end
-    else if(wbk2csr_pc == 32'h8000_14ac) begin
+    else if(wbk2csr_pc == 32'h8000_14ac || cnn_cycle_flag) begin
         avg_pooling_cycle_flag <= 0;
     end
     else begin
